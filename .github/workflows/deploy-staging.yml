@@ -26,6 +26,7 @@ jobs:
       FLOWER_BASIC_AUTH: ${{ secrets.FLOWER_BASIC_AUTH }}
       DOCKER_IMAGE_FRONTEND: ${{ secrets.DOCKER_IMAGE_FRONTEND }}
       DOCKER_IMAGE_BACKEND: ${{ secrets.DOCKER_IMAGE_BACKEND }}
+      QDRANT__SERVICE__API_KEY: ${{ secrets.QDRANT__SERVICE__API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
