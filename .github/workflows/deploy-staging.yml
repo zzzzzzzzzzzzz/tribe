@@ -35,6 +35,8 @@ jobs:
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DENSE_EMBEDDING_MODEL: ${{ secrets.DENSE_EMBEDDING_MODEL }}
+      SPARSE_EMBEDDING_MODEL: ${{ secrets.SPARSE_EMBEDDING_MODEL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
