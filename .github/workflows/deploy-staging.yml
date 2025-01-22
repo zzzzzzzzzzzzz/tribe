@@ -37,6 +37,9 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DENSE_EMBEDDING_MODEL: ${{ secrets.DENSE_EMBEDDING_MODEL }}
       SPARSE_EMBEDDING_MODEL: ${{ secrets.SPARSE_EMBEDDING_MODEL }}
+      MAX_MEMORY_PER_CHILD: ${{ secrets.MAX_MEMORY_PER_CHILD }}
+      MAX_UPLOAD_SIZE: ${{ secrets.MAX_UPLOAD_SIZE }}
+      RECURSION_LIMIT: ${{ secrets.RECURSION_LIMIT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
