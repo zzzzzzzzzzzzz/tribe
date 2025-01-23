@@ -4,8 +4,6 @@ services:
     restart: always
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
-    env_file:
-      - .env
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
@@ -83,8 +81,6 @@ services:
     depends_on:
       - redis
       - db
-    env_file:
-      - .env
     environment:
       - USER_AGENT=${USER_AGENT}
       - MAX_WORKERS=${MAX_WORKERS}
@@ -182,8 +178,6 @@ services:
     networks:
       - traefik-public
       - default
-    env_file:
-      - .env
     environment:
       - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
     command:
