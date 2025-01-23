@@ -136,7 +136,6 @@ services:
 
   celery:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
-    container_name: celery
     restart: always
     volumes:
       - app-backend-model-cache:/app/cache
