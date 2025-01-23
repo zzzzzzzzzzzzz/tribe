@@ -26,6 +26,21 @@ jobs:
       FLOWER_BASIC_AUTH: ${{ secrets.FLOWER_BASIC_AUTH }}
       DOCKER_IMAGE_FRONTEND: ${{ secrets.DOCKER_IMAGE_FRONTEND }}
       DOCKER_IMAGE_BACKEND: ${{ secrets.DOCKER_IMAGE_BACKEND }}
+      QDRANT__SERVICE__API_KEY: ${{ secrets.QDRANT__SERVICE__API_KEY }}
+      USER_AGENT: ${{ secrets.USER_AGENT }}
+      MAX_WORKERS: ${{ secrets.MAX_WORKERS }}
+      BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
+      USERS_OPEN_REGISTRATION: ${{ secrets.USERS_OPEN_REGISTRATION }}
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DENSE_EMBEDDING_MODEL: ${{ secrets.DENSE_EMBEDDING_MODEL }}
+      SPARSE_EMBEDDING_MODEL: ${{ secrets.SPARSE_EMBEDDING_MODEL }}
+      MAX_MEMORY_PER_CHILD: ${{ secrets.MAX_MEMORY_PER_CHILD }}
+      MAX_UPLOAD_SIZE: ${{ secrets.MAX_UPLOAD_SIZE }}
+      RECURSION_LIMIT: ${{ secrets.RECURSION_LIMIT }}
+      PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
