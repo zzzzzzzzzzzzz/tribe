@@ -82,6 +82,7 @@ services:
       - redis
       - db
     environment:
+      - PROJECT_NAME=${PROJECT_NAME}
       - USER_AGENT=${USER_AGENT}
       - MAX_WORKERS=${MAX_WORKERS}
       - FASTEMBED_CACHE_PATH=/app/cache
@@ -109,6 +110,7 @@ services:
       - RECURSION_LIMIT=${RECURSION_LIMIT}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
     build:
       context: ./backend
       args:
