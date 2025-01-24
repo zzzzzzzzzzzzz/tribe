@@ -100,7 +100,7 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`${DOMAIN?Variable not set}`) && PathPrefix(`/api`, `/docs`, `/redoc`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
 
-celery:
+  celery:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
     restart: always
     volumes:
@@ -139,6 +139,7 @@ celery:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
+
   flower:
     image: mher/flower:2.0
     restart: always
