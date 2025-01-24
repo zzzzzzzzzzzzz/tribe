@@ -139,7 +139,6 @@ celery:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
-
   flower:
     image: mher/flower:2.0
     restart: always
