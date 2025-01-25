@@ -9,6 +9,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+
   adminer:
     image: adminer
     restart: always
@@ -22,9 +24,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.staging-adminer-http.entrypoints=http
-      - traefik.http.services.staging-adminer.loadbalancer.server.port=8080
-      - traefik.http.routers.staging-adminer-http.rule=Host(`${HOST?Variable not set}`) && PathPrefix(`/adminer`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.rule=Host(`adminer.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.entrypoints=http
+      - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
 
   qdrant:
     image: qdrant/qdrant
@@ -36,9 +38,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.staging-qdrant-http.entrypoints=http
-      - traefik.http.services.staging-qdrant.loadbalancer.server.port=6333
-      - traefik.http.routers.staging-qdrant-http.rule=Host(`${HOST?Variable not set}`) && PathPrefix(`/qdrant`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.rule=Host(`qdrant.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.entrypoints=http
+      - traefik.http.services.${STACK_NAME?Variable not set}-qdrant.loadbalancer.server.port=6333
 
   redis:
     image: redis:alpine
@@ -46,9 +48,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.staging-redis-http.entrypoints=http
-      - traefik.http.services.staging-redis.loadbalancer.server.port=6379
-      - traefik.http.routers.staging-redis-http.rule=Host(`${HOST?Variable not set}`) && PathPrefix(`/redis`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.rule=Host(`redis.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.entrypoints=http
+      - traefik.http.services.${STACK_NAME?Variable not set}-redis.loadbalancer.server.port=6379
 
   backend:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
@@ -99,8 +101,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.services.staging-backend.loadbalancer.server.port=80
-      - traefik.http.routers.staging-backend-http.rule=Host(`${HOST?Variable not set}`) && PathPrefix(`/api`, `/docs`, `/redoc`)
+      - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
+      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`${DOMAIN?Variable not set}`, `www.${DOMAIN?Variable not set}`) && PathPrefix(`/api`, `/docs`, `/redoc`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
 
   celery:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
@@ -157,9 +160,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.staging-flower-http.entrypoints=http
-      - traefik.http.services.staging-flower.loadbalancer.server.port=5555
-      - traefik.http.routers.staging-flower-http.rule=Host(`${HOST?Variable not set}`) && PathPrefix(`/flower`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.rule=Host(`flower.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.entrypoints=http
+      - traefik.http.services.${STACK_NAME?Variable not set}-flower.loadbalancer.server.port=5555
 
   frontend:
     image: "${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}"
@@ -170,14 +173,14 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=${HOST?Variable not set}
+        - VITE_API_URL=http://${DOMAIN?Variable not set}
         - NODE_ENV=production
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.services.staging-frontend.loadbalancer.server.port=8080
-      - traefik.http.routers.staging-frontend-http.entrypoints=http
-      - traefik.http.routers.staging-frontend-http.rule=Host(`${HOST?Variable not set}`)
+      - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=8080
+      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=Host(`${DOMAIN?Variable not set}`, `www.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.entrypoints=http
 
 volumes:
   app-db-data:
