@@ -181,7 +181,7 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://${HOST?Variable not set}
+        - VITE_API_URL=http://${HOST?Variable not set}/staging
         - NODE_ENV=production
     labels:
       - traefik.enable=true
