@@ -41,6 +41,7 @@ jobs:
       MAX_UPLOAD_SIZE: ${{ secrets.MAX_UPLOAD_SIZE }}
       RECURSION_LIMIT: ${{ secrets.RECURSION_LIMIT }}
       PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+      GIGACHAT_AUTH_TOKEN: ${{ secrets.GIGACHAT_AUTH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
