@@ -1,5 +1,5 @@
 import pytest
-from langchain.pydantic_v1 import ValidationError
+from pydantic import ValidationError
 
 from app.core.graph.skills.api_tool import dynamic_api_tool
 

@@ -79,6 +79,7 @@ const AVAILABLE_MODELS = {
     "claude-3-opus-20240229",
   ],
   ollama: ["llama3.1"],
+  gigachat: ["GigaChat", "GigaChat-Plus", "GigaChat-Pro", "GigaChat-Max"],
 }
 
 const ALLOWED_MEMBER_CONFIGS:  Record<MemberTypes, MemberConfigs> = {
