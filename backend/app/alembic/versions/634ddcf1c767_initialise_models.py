@@ -1,7 +1,7 @@
 """initialise models
 
 Revision ID: 634ddcf1c767
-Revises: 
+Revises:
 Create Date: 2024-05-03 14:27:45.799194
 
 """

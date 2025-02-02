@@ -10,4 +10,3 @@ export type UserUpdate = {
     full_name?: (string | null);
     password?: (string | null);
 };
-

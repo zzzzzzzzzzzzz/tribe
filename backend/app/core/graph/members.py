@@ -30,7 +30,7 @@ class GraphSkill(BaseModel):
     definition: dict[str, Any] | None = Field(
         description="The skill definition. For api tool calling. Optional."
     )
-    managed: bool = Field("Whether the skill is managed or user created.")
+    managed: bool = Field(description="Whether the skill is managed or user created.")
 
     @property
     def tool(self) -> BaseTool:

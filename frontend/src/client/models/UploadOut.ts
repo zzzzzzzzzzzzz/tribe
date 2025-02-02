@@ -12,4 +12,3 @@ export type UploadOut = {
     last_modified: string;
     status: UploadStatus;
 };
-

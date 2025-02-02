@@ -7,4 +7,3 @@ export type TeamUpdate = {
     name?: (string | null);
     description?: (string | null);
 };
-

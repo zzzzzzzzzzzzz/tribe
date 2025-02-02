@@ -1,4 +1,6 @@
 .vscode
 .env
 .DS_Store
-.ipynb
+*.ipynb
+.ruff_cache
+.mypy_cache

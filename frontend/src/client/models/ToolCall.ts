@@ -25,4 +25,3 @@
         id: (string | null);
         type?: 'tool_call';
     };
-

@@ -10,4 +10,3 @@ export type Body_uploads_create_upload = {
     chunk_size: number;
     chunk_overlap: number;
 };
-

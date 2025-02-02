@@ -11,4 +11,3 @@ export type Skill = {
     id?: (number | null);
     owner_id?: (number | null);
 };
-

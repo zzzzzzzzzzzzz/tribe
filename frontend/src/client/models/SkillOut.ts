@@ -10,4 +10,3 @@ export type SkillOut = {
     tool_definition?: (Record<string, any> | null);
     id: number;
 };
-

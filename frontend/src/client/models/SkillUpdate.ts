@@ -9,4 +9,3 @@ export type SkillUpdate = {
     managed?: (boolean | null);
     tool_definition?: (Record<string, any> | null);
 };
-

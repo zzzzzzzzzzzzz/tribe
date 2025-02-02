@@ -10,4 +10,3 @@ export type TeamChat = {
     messages: Array<ChatMessage>;
     interrupt?: (Interrupt | null);
 };
-
