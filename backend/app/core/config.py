@@ -65,7 +65,7 @@ class Settings(BaseSettings):
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
-        return PostgresDsn(multi_host_url)
+        return PostgresDsn(str(multi_host_url))
 
     # For checkpointer
     SQLALCHEMY_CONNECTION_KWARGS: dict[str, Any] = {
