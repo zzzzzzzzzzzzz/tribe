@@ -2,7 +2,7 @@ import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
-from psycopg.rows import dict_row
+from psycopg.rows import AsyncRowFactory, DictRow, dict_row
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -14,6 +14,8 @@ from pydantic import (
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+
+DictRowFactory: AsyncRowFactory[DictRow] = dict_row
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -71,7 +73,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_CONNECTION_KWARGS: dict[str, Any] = {
         "autocommit": True,
         "prepare_threshold": 0,
-        "row_factory": dict_row,
+        "row_factory": DictRowFactory,
     }
 
     @computed_field  # type: ignore[prop-decorator]
