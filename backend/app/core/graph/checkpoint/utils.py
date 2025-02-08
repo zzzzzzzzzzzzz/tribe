@@ -7,7 +7,7 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, ToolMes
 from langgraph.checkpoint.base import CheckpointTuple
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg import AsyncConnection
-from psycopg.rows import DictRow
+from psycopg.rows import DictRow, dict_row
 
 from app.core.config import settings
 from app.core.graph.messages import ChatResponse
@@ -121,7 +121,9 @@ async def get_checkpoint_tuples(thread_id: str) -> CheckpointTuple | None:
         CheckpointTuple: The latest checkpoint tuple.
     """
     async with await AsyncConnection[DictRow].connect(
-        settings.PG_DATABASE_URI, **settings.SQLALCHEMY_CONNECTION_KWARGS
+        settings.PG_DATABASE_URI,
+        row_factory=dict_row,
+        **settings.SQLALCHEMY_CONNECTION_KWARGS,
     ) as conn:
         checkpointer = AsyncPostgresSaver(conn=conn)
         checkpoint_tuple = await checkpointer.aget_tuple(

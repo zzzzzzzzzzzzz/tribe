@@ -2,7 +2,6 @@ import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
-from psycopg.rows import dict_row
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -71,7 +70,6 @@ class Settings(BaseSettings):
     SQLALCHEMY_CONNECTION_KWARGS: dict[str, Any] = {
         "autocommit": True,
         "prepare_threshold": 0,
-        "row_factory": dict_row,
     }
 
     @computed_field  # type: ignore[prop-decorator]
