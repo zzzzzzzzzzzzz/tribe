@@ -14,7 +14,7 @@ from langchain_core.messages import (
 from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.tools import BaseTool
-from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver, V
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.graph import CompiledGraph
@@ -284,7 +284,7 @@ def ask_human(state: TeamState) -> None:
 def create_hierarchical_graph(
     teams: dict[str, GraphTeam],
     leader_name: str,
-    checkpointer: BaseCheckpointSaver | None = None,
+    checkpointer: BaseCheckpointSaver[V] | None = None,
 ) -> CompiledGraph:
     """Create the team's graph.
 
@@ -395,7 +395,7 @@ def create_hierarchical_graph(
 
 
 def create_sequential_graph(
-    team: Mapping[str, GraphMember], checkpointer: BaseCheckpointSaver
+    team: Mapping[str, GraphMember], checkpointer: BaseCheckpointSaver[V]
 ) -> CompiledGraph:
     """
     Creates a sequential graph from a list of team members.
