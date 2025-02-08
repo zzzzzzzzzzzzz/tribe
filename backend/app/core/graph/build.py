@@ -20,6 +20,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import ToolNode
 from psycopg import AsyncConnection
+from psycopg.rows import DictRow
 
 from app.core.config import settings
 from app.core.graph.members import (
@@ -514,7 +515,7 @@ async def generator(
     ]
 
     try:
-        async with await AsyncConnection.connect(
+        async with await AsyncConnection[DictRow].connect(
             settings.PG_DATABASE_URI,
             **settings.SQLALCHEMY_CONNECTION_KWARGS,
         ) as conn:
