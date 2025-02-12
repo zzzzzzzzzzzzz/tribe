@@ -9,4 +9,3 @@ export type SkillCreate = {
     managed?: boolean;
     tool_definition: Record<string, any>;
 };
-

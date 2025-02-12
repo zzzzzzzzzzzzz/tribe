@@ -13,4 +13,3 @@ export type Upload = {
     last_modified?: string;
     status: UploadStatus;
 };
-

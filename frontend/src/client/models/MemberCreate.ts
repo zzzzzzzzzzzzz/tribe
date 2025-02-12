@@ -18,4 +18,3 @@ export type MemberCreate = {
     interrupt?: boolean;
     base_url?: (string | null);
 };
-

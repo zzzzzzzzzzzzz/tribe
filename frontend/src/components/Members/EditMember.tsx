@@ -73,12 +73,7 @@ const customSelectOption = {
 // TODO: Place this somewhere else.
 const AVAILABLE_MODELS = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
-  anthropic: [
-    "claude-3-haiku-20240307",
-    "claude-3-sonnet-20240229",
-    "claude-3-opus-20240229",
-  ],
-  ollama: ["llama3.1"],
+  gigachat: ["GigaChat", "GigaChat-Plus", "GigaChat-Pro", "GigaChat-Max"],
 }
 
 const ALLOWED_MEMBER_CONFIGS:  Record<MemberTypes, MemberConfigs> = {
@@ -397,7 +392,7 @@ export function EditMember({
                 )
               }}
             />
-            {(modelProvider === "openai" || modelProvider === "ollama") && (
+            {(modelProvider === "openai") && (
               <FormControl mt={4} isInvalid={!!errors.base_url}>
                 <FormLabel htmlFor="model">Proxy Provider</FormLabel>
                 <Input
@@ -405,11 +400,6 @@ export function EditMember({
                   {...register("base_url")}
                   placeholder="Base URL"
                 />
-                {modelProvider === "ollama" && (
-                  <FormHelperText>
-                    Default url: http://host.docker.internal:11434
-                  </FormHelperText>
-                )}
               </FormControl>
             )}
             <Controller

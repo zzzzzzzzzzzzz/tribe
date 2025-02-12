@@ -11,10 +11,11 @@ from langchain_core.runnables import (
     RunnableSerializable,
 )
 from langchain_core.tools import BaseTool
-from langchain_ollama import ChatOllama
+from langchain_core.utils.utils import secret_from_env
+from langchain_gigachat import GigaChat
 from langchain_openai import ChatOpenAI
 from langgraph.graph import add_messages
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from typing_extensions import NotRequired, TypedDict
 
 from app.core.graph.rag.qdrant import QdrantStore
@@ -28,7 +29,7 @@ class GraphSkill(BaseModel):
     definition: dict[str, Any] | None = Field(
         description="The skill definition. For api tool calling. Optional."
     )
-    managed: bool = Field("Whether the skill is managed or user created.")
+    managed: bool = Field(description="Whether the skill is managed or user created.")
 
     @property
     def tool(self) -> BaseTool:
@@ -155,8 +156,6 @@ class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
-        # If using proxy, then we need to pass base url
-        # TODO: Include ollama here once langchain-ollama bug is fixed
         if provider in ["openai"] and base_url:
             self.model = init_chat_model(
                 model,
@@ -164,11 +163,19 @@ class BaseNode:
                 temperature=temperature,
                 base_url=base_url,
             )
-        elif provider == "ollama":
-            self.model = ChatOllama(
+        elif provider == "gigachat":
+            auth_token_secret = secret_from_env("GIGACHAT_AUTH_TOKEN", default=None)()
+            auth_token = (
+                auth_token_secret.get_secret_value()
+                if isinstance(auth_token_secret, SecretStr)
+                else auth_token_secret
+            )
+            self.model = GigaChat(
+                credentials=auth_token,
+                verify_ssl_certs=False,
                 model=model,
                 temperature=temperature,
-                base_url=base_url if base_url else "http://host.docker.internal:11434",
+                base_url=base_url if base_url else None,
             )
         else:
             self.model = init_chat_model(

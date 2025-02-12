@@ -24,6 +24,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.rule=Host(`adminer.${DOMAIN?Variable not set}`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.entrypoints=http
       - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
@@ -38,6 +39,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.rule=Host(`qdrant.${DOMAIN?Variable not set}`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.entrypoints=http
       - traefik.http.services.${STACK_NAME?Variable not set}-qdrant.loadbalancer.server.port=6333
@@ -48,6 +50,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.rule=Host(`redis.${DOMAIN?Variable not set}`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.entrypoints=http
       - traefik.http.services.${STACK_NAME?Variable not set}-redis.loadbalancer.server.port=6379
@@ -94,6 +97,9 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
+      - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY?Variable not set}
+
     build:
       context: ./backend
       args:
@@ -101,12 +107,14 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`${DOMAIN?Variable not set}`, `www.${DOMAIN?Variable not set}`) && PathPrefix(`/api`, `/docs`, `/redoc`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
 
   celery:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+    container_name: celery
     restart: always
     volumes:
       - app-backend-model-cache:/app/cache
@@ -144,6 +152,8 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
+      - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY?Variable not set}
 
   flower:
     image: mher/flower:2.0
@@ -160,6 +170,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.rule=Host(`flower.${DOMAIN?Variable not set}`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.entrypoints=http
       - traefik.http.services.${STACK_NAME?Variable not set}-flower.loadbalancer.server.port=5555
@@ -178,6 +189,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=8080
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=Host(`${DOMAIN?Variable not set}`, `www.${DOMAIN?Variable not set}`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.entrypoints=http

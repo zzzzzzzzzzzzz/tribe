@@ -10,4 +10,3 @@ export type UserOut = {
     full_name?: (string | null);
     id: number;
 };
-

@@ -1,5 +1,5 @@
 import pytest
-from langchain.pydantic_v1 import ValidationError
+from pydantic import ValidationError
 
 from app.core.graph.skills.api_tool import dynamic_api_tool
 
@@ -144,7 +144,7 @@ def test_dynamic_api_tool_missing_required_parameter() -> None:
                 "current": "temperature_2m,wind_speed_10m",
             }
         )
-    assert "field required" in str(excinfo.value)
+    assert "field required" in str(excinfo.value).lower()
 
 
 def test_dynamic_api_tool_handle_tool_error() -> None:

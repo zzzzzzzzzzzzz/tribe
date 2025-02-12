@@ -22,7 +22,7 @@ def upgrade():
         'ChatOpenAI': 'openai',
         'ChatAnthropic': 'anthropic',
     }
-    
+
     # Rename each provider name according to the mapping
     for old_name, new_name in mapping.items():
         op.execute(f"UPDATE member SET provider = '{new_name}' WHERE provider = '{old_name}'")
@@ -34,7 +34,7 @@ def downgrade():
         'openai': 'ChatOpenAI',
         'anthropic': 'ChatAnthropic',
     }
-    
+
     # Revert each provider name according to the mapping
     for new_name, old_name in mapping.items():
         op.execute(f"UPDATE member SET provider = '{old_name}' WHERE provider = '{new_name}'")

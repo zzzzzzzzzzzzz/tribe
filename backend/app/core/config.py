@@ -2,7 +2,6 @@ import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
-from psycopg.rows import dict_row
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -35,7 +34,7 @@ class Settings(BaseSettings):
     DOMAIN: str = "localhost"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def server_host(self) -> str:
         # Use HTTPS for anything other than local development
@@ -55,10 +54,10 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str = ""
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return MultiHostUrl.build(
+        multi_host_url = MultiHostUrl.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
@@ -66,15 +65,15 @@ class Settings(BaseSettings):
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
+        return PostgresDsn(str(multi_host_url))
 
     # For checkpointer
     SQLALCHEMY_CONNECTION_KWARGS: dict[str, Any] = {
         "autocommit": True,
         "prepare_threshold": 0,
-        "row_factory": dict_row,
     }
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def PG_DATABASE_URI(self) -> str:
         multiHostUrl = MultiHostUrl.build(
@@ -105,7 +104,7 @@ class Settings(BaseSettings):
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)

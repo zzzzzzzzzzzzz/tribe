@@ -9,4 +9,3 @@ export type ChatMessage = {
     type: ChatMessageType;
     content: string;
 };
-

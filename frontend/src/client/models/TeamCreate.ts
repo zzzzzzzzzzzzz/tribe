@@ -8,4 +8,3 @@ export type TeamCreate = {
     description?: (string | null);
     workflow: string;
 };
-
