@@ -98,6 +98,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
       - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY?Variable not set}
 
     build:
       context: ./backend
@@ -152,6 +153,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
       - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY?Variable not set}
 
   flower:
     image: mher/flower:2.0
