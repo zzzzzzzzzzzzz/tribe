@@ -392,7 +392,7 @@ export function EditMember({
                 )
               }}
             />
-            {(modelProvider === "openai" || modelProvider === "ollama") && (
+            {(modelProvider === "openai") && (
               <FormControl mt={4} isInvalid={!!errors.base_url}>
                 <FormLabel htmlFor="model">Proxy Provider</FormLabel>
                 <Input
@@ -400,11 +400,6 @@ export function EditMember({
                   {...register("base_url")}
                   placeholder="Base URL"
                 />
-                {modelProvider === "ollama" && (
-                  <FormHelperText>
-                    Default url: http://host.docker.internal:11434
-                  </FormHelperText>
-                )}
               </FormControl>
             )}
             <Controller
