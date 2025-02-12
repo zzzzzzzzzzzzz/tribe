@@ -13,7 +13,6 @@ from langchain_core.runnables import (
 from langchain_core.tools import BaseTool
 from langchain_core.utils.utils import secret_from_env
 from langchain_gigachat import GigaChat
-from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langgraph.graph import add_messages
 from pydantic import BaseModel, Field, SecretStr
@@ -157,20 +156,12 @@ class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
-        # If using proxy, then we need to pass base url
-        # TODO: Include ollama here once langchain-ollama bug is fixed
         if provider in ["openai"] and base_url:
             self.model = init_chat_model(
                 model,
                 model_provider=provider,
                 temperature=temperature,
                 base_url=base_url,
-            )
-        elif provider == "ollama":
-            self.model = ChatOllama(
-                model=model,
-                temperature=temperature,
-                base_url=base_url if base_url else "http://host.docker.internal:11434",
             )
         elif provider == "gigachat":
             auth_token_secret = secret_from_env("GIGACHAT_AUTH_TOKEN", default=None)()
