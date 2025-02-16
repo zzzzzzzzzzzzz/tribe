@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* Fixed mistake in VITE_API_URL. PR [#3](https://github.com/zzzzzzzzzzzzz/tribe/pull/3) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Returned https support with let's encrypt. PR [#2](https://github.com/zzzzzzzzzzzzz/tribe/pull/2) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Added gigachat basic support. PR [#1](https://github.com/zzzzzzzzzzzzz/tribe/pull/1) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * ⬆ Bump tiangolo/issue-manager from 0.5.0 to 0.5.1. PR [#139](https://github.com/StreetLamb/tribe/pull/139) by [@dependabot[bot]](https://github.com/apps/dependabot).
