@@ -42,7 +42,6 @@ jobs:
       RECURSION_LIMIT: ${{ secrets.RECURSION_LIMIT }}
       PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
       GIGACHAT_AUTH_TOKEN: ${{ secrets.GIGACHAT_AUTH_TOKEN }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
