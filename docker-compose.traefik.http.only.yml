@@ -1,0 +1,46 @@
+services:
+  traefik:
+    image: traefik:v2.3
+    ports:
+      # Listen on port 80 for HTTP
+      - 80:80
+    restart: always
+    labels:
+      # Enable Traefik for this service
+      - traefik.enable=true
+      # Use the traefik-public network
+      - traefik.docker.network=traefik-public
+      # Define the port inside of the Docker service to use
+      - traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080
+      # HTTP router for Traefik dashboard
+      - traefik.http.routers.traefik-dashboard-http.entrypoints=http
+      - traefik.http.routers.traefik-dashboard-http.rule=Host(`traefik.${DOMAIN?Variable not set}`)
+      # Basic auth middleware
+      - traefik.http.middlewares.admin-auth.basicauth.users=${USERNAME?Variable not set}:${HASHED_PASSWORD?Variable not set}
+      # Middleware to rewrite links in the dashboard response
+      - traefik.http.routers.traefik-dashboard-http.middlewares=admin-auth
+      # Use the special Traefik service api@internal for the web UI/Dashboard
+      - traefik.http.routers.traefik-dashboard-http.service=api@internal
+    volumes:
+      # Add Docker as a mounted volume, so that Traefik can read the labels of other services
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      # Enable Docker in Traefik
+      - --providers.docker
+      # Do not expose all Docker services, only those explicitly exposed
+      - --providers.docker.exposedbydefault=false
+      # Create an entrypoint "http" listening on port 80
+      - --entrypoints.http.address=:80
+      # Enable the access log for HTTP requests
+      - --accesslog
+      # Enable the Traefik log for configurations and errors
+      - --log
+      # Enable the Dashboard and API
+      - --api
+    networks:
+      # Use the public network
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true
