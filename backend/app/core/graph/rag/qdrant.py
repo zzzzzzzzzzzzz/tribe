@@ -21,7 +21,7 @@ class QdrantStore:
     collection_name = settings.QDRANT_COLLECTION
     url = settings.QDRANT_URL
 
-    def __new__(cls, *args, **kwargs) -> "QdrantStore":
+    def __new__(cls: type["QdrantStore"], *args: Any, **kwargs: Any) -> "QdrantStore":
         if cls._instance is None:
             cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
