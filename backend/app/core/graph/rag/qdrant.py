@@ -16,11 +16,19 @@ class QdrantStore:
     A class to handle uploading and searching documents in a Qdrant vector store.
     """
 
+    # making this class singletone
+    _instance = None
     collection_name = settings.QDRANT_COLLECTION
     url = settings.QDRANT_URL
 
+    def __new__(cls, *args, **kwargs) -> "QdrantStore":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+        return cls._instance
+
     def __init__(self) -> None:
-        self.client = self._create_collection()
+        if not hasattr(self, "client"):
+            self.client = self._create_collection()
 
     def add(
         self,
