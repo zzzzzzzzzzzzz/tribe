@@ -1,3 +1,4 @@
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -18,12 +19,15 @@ class QdrantStore:
 
     # making this class singletone
     _instance = None
+    _lock = threading.Lock()  # Lock for thread safety
     collection_name = settings.QDRANT_COLLECTION
     url = settings.QDRANT_URL
 
     def __new__(cls: type["QdrantStore"], *args: Any, **kwargs: Any) -> "QdrantStore":
         if cls._instance is None:
-            cls._instance = super().__new__(cls, *args, **kwargs)
+            with cls._lock:  # Ensure only one thread can create an instance
+                if cls._instance is None:  # Double-check to prevent race conditions
+                    cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
 
     def __init__(self) -> None:
