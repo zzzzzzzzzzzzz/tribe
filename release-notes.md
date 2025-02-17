@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* Made more efforts to deal with memory leak. PR [#5](https://github.com/zzzzzzzzzzzzz/tribe/pull/5) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Made QdrantStore singletone. PR [#4](https://github.com/zzzzzzzzzzzzz/tribe/pull/4) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Fixed mistake in VITE_API_URL. PR [#3](https://github.com/zzzzzzzzzzzzz/tribe/pull/3) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Returned https support with let's encrypt. PR [#2](https://github.com/zzzzzzzzzzzzz/tribe/pull/2) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
