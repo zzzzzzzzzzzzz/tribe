@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* Changed run command once again. PR [#9](https://github.com/zzzzzzzzzzzzz/tribe/pull/9) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Updated db-init service script. PR [#8](https://github.com/zzzzzzzzzzzzz/tribe/pull/8) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Added n8n setup. PR [#7](https://github.com/zzzzzzzzzzzzz/tribe/pull/7) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Fixed duckduckgo search. PR [#6](https://github.com/zzzzzzzzzzzzz/tribe/pull/6) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
