@@ -41,34 +41,14 @@ services:
       - app-qdrant-data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__API_KEY=${QDRANT__SERVICE__API_KEY?Variable not set}
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.rule=Host(`qdrant.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.entrypoints=http
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-http.middlewares=https-redirect
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-https.rule=Host(`qdrant.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-qdrant-https.tls.certresolver=le
-      - traefik.http.services.${STACK_NAME?Variable not set}-qdrant.loadbalancer.server.port=6333
+    networks:
+      - default
 
   redis:
     image: redis:alpine
     restart: always
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.rule=Host(`redis.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.entrypoints=http
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-http.middlewares=https-redirect
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-https.rule=Host(`redis.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-redis-https.tls.certresolver=le
-      - traefik.http.services.${STACK_NAME?Variable not set}-redis.loadbalancer.server.port=6379
+    networks:
+      - default
 
   backend:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
@@ -111,6 +91,7 @@ services:
       - RECURSION_LIMIT=${RECURSION_LIMIT}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
       - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
 
@@ -169,8 +150,10 @@ services:
       - DENSE_EMBEDDING_MODEL=${DENSE_EMBEDDING_MODEL?Variable not set}
       - SPARSE_EMBEDDING_MODEL=${SPARSE_EMBEDDING_MODEL?Variable not set}
       - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE}
+      - RECURSION_LIMIT=${RECURSION_LIMIT}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
       - OPENAI_API_KEY=${OPENAI_API_KEY?Variable not set}
       - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
 
@@ -232,12 +215,132 @@ services:
       # Middleware to redirect www, and redirect HTTP to HTTPS
       # to disable www redirection remove the section: ${STACK_NAME?Variable not set}-www-redirect,
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
+  n8n-db-init:
+    image: postgres:12
+    restart: "no"
+    depends_on:
+      - db
+    networks:
+      - default
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD?Variable not set}          # superuser password
+      - PGHOST=db
+      - PGPORT=${POSTGRES_PORT}
+      - PGUSER=${POSTGRES_USER?Variable not set}                  # superuser (from your db service)
+      - N8N_DB=${POSTGRES_DB_N8N?Variable not set}
+      - N8N_USER=${POSTGRES_USER_N8N?Variable not set}
+      - N8N_PASS=${POSTGRES_PASSWORD_N8N?Variable not set}
+    command: >
+      bash -lc '
+      until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do sleep 1; done;
+      psql -v ON_ERROR_STOP=1 -d postgres <<SQL
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = current_setting(''N8N_USER'', true)) THEN
+          EXECUTE format(''CREATE ROLE %I LOGIN PASSWORD %L'',
+                         current_setting(''N8N_USER'', true),
+                         current_setting(''N8N_PASS'', true));
+        END IF;
+      END$$;
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_database WHERE datname = current_setting(''N8N_DB'', true)) THEN
+          EXECUTE format(''CREATE DATABASE %I ENCODING ''''UTF8'''''',
+                         current_setting(''N8N_DB'', true));
+        END IF;
+      END$$;
+      SQL
+      psql -v ON_ERROR_STOP=1 -d "$N8N_DB" <<SQL
+      CREATE SCHEMA IF NOT EXISTS n8n AUTHORIZATION "$N8N_USER";
+      GRANT ALL PRIVILEGES ON SCHEMA n8n TO "$N8N_USER";
+      ALTER ROLE "$N8N_USER" SET search_path TO n8n, public;
+      SQL
+      '
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    # Internal port only; Traefik will route to it
+    expose:
+      - "5678"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - traefik-public
+      - default
+    environment:
+      - N8N_HOST=n8n.${DOMAIN?Variable not set}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.${DOMAIN?Variable not set}/
+      - GENERIC_TIMEZONE=Europe/Moscow
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY?Variable not set}
+      # Use Postgres instead of SQLite
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=${POSTGRES_PORT}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB_N8N?Variable not set}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER_N8N?Variable not set}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD_N8N?Variable not set}
+      - DB_POSTGRESDB_SCHEMA=n8n
 
+      # Queue mode via your Redis
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=2
+      # Optional hardening / noise off
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_HIRING_BANNER_ENABLED=false
+      # (If you later switch to Postgres, set DB_* here)
+    volumes:
+      - app-n8n-data:/home/node/.n8n
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
+
+      # HTTP -> HTTPS
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-http.rule=Host(`n8n.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-http.entrypoints=http
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-http.middlewares=https-redirect
+
+      # HTTPS
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-https.rule=Host(`n8n.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-https.entrypoints=https
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-https.tls=true
+      - traefik.http.routers.${STACK_NAME?Variable not set}-n8n-https.tls.certresolver=le
+
+      # Point Traefik to the app’s internal port
+      - traefik.http.services.${STACK_NAME?Variable not set}-n8n.loadbalancer.server.port=5678
+  n8n-worker:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    depends_on: [db, redis]
+    networks: [default]
+    command: n8n worker
+    environment:
+      # must match the main instance
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY?Variable not set}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=${POSTGRES_PORT}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB_N8N?Variable not set}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER_N8N?Variable not set}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD_N8N?Variable not set}
+      - DB_POSTGRESDB_SCHEMA=n8n
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=2
+      # Optional: set worker concurrency
+      - N8N_WORKER_CONCURRENCY=2
 volumes:
   app-db-data:
   app-qdrant-data:
   app-backend-model-cache:
   app-upload-data:
+  app-n8n-data:
 
 networks:
   traefik-public:
