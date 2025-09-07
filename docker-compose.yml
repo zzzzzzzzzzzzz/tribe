@@ -235,27 +235,27 @@ services:
       set -Eeuo pipefail
 
       # Wait for Postgres
-      until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER"; do sleep 1; done
+      until pg_isready -h "$$PGHOST" -p "$$PGPORT" -U "$$PGUSER"; do sleep 1; done
 
       # Escape single quotes in password for SQL literal
-      esc_pass=${N8N_PASS//\'/\'\'}
+      esc_pass=$${N8N_PASS//\'/\'\'}
 
       # Create role if missing
-      role_exists="$(psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${N8N_USER}'" postgres || true)"
-      if [ "$role_exists" != "1" ]; then
-        psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE ROLE \"${N8N_USER}\" LOGIN PASSWORD '${esc_pass}';"
+      role_exists="$$(psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$$N8N_USER'" postgres || true)"
+      if [ "$$role_exists" != "1" ]; then
+        psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE ROLE \"$$N8N_USER\" LOGIN PASSWORD '$$esc_pass';"
       fi
 
       # Create database if missing, owned by role
-      db_exists="$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='${N8N_DB}'" postgres || true)"
-      if [ "$db_exists" != "1" ]; then
-        psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE \"${N8N_DB}\" OWNER \"${N8N_USER}\" ENCODING 'UTF8';"
+      db_exists="$$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='$$N8N_DB'" postgres || true)"
+      if [ "$$db_exists" != "1" ]; then
+        psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE \"$$N8N_DB\" OWNER \"$$N8N_USER\" ENCODING 'UTF8';"
       fi
 
       # Schema + defaults inside n8n DB
-      psql -v ON_ERROR_STOP=1 -d "$N8N_DB" -c "CREATE SCHEMA IF NOT EXISTS n8n AUTHORIZATION \"${N8N_USER}\";"
-      psql -v ON_ERROR_STOP=1 -d "$N8N_DB" -c "GRANT ALL PRIVILEGES ON SCHEMA n8n TO \"${N8N_USER}\";"
-      psql -v ON_ERROR_STOP=1 -d "$N8N_DB" -c "ALTER ROLE \"${N8N_USER}\" IN DATABASE \"${N8N_DB}\" SET search_path TO n8n, public;"
+      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "CREATE SCHEMA IF NOT EXISTS n8n AUTHORIZATION \"$$N8N_USER\";"
+      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "GRANT ALL PRIVILEGES ON SCHEMA n8n TO \"$$N8N_USER\";"
+      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "ALTER ROLE \"$$N8N_USER\" IN DATABASE \"$$N8N_DB\" SET search_path TO n8n, public;"
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
