@@ -233,7 +233,7 @@ services:
     volumes:
       - ./scripts/n8n-db-init.sh:/usr/local/bin/n8n-db-init.sh:ro
     entrypoint: ["/usr/bin/env","bash","-lc"]
-    command: /usr/local/bin/n8n-db-init.sh
+    command: bash /usr/local/bin/n8n-db-init.sh
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
