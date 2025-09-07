@@ -230,17 +230,10 @@ services:
       - N8N_DB=${POSTGRES_DB_N8N?Variable not set}
       - N8N_USER=${POSTGRES_USER_N8N?Variable not set}
       - N8N_PASS=${POSTGRES_PASSWORD_N8N?Variable not set}
-    entrypoint: [ "bash", "-lc" ]
-    command: >
-      esc_pass=$${N8N_PASS//\'/\'\'};
-      until pg_isready -h "$$PGHOST" -p "$$PGPORT" -U "$$PGUSER"; do sleep 1; done;
-      psql -v ON_ERROR_STOP=1 -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='$$N8N_USER'" | grep -q 1
-      || psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE ROLE \"$$N8N_USER\" LOGIN PASSWORD '$$esc_pass';";
-      psql -v ON_ERROR_STOP=1 -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='$$N8N_DB'" | grep -q 1
-      || psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE \"$$N8N_DB\" OWNER \"$$N8N_USER\" ENCODING 'UTF8';";
-      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "CREATE SCHEMA IF NOT EXISTS n8n AUTHORIZATION \"$$N8N_USER\";";
-      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "GRANT ALL PRIVILEGES ON SCHEMA n8n TO \"$$N8N_USER\";";
-      psql -v ON_ERROR_STOP=1 -d "$$N8N_DB" -c "ALTER ROLE \"$$N8N_USER\" IN DATABASE \"$$N8N_DB\" SET search_path TO n8n, public;";
+    volumes:
+      - ./scripts/n8n-db-init.sh:/usr/local/bin/n8n-db-init.sh:ro
+    entrypoint: ["/usr/bin/env","bash","-lc"]
+    command: /usr/local/bin/n8n-db-init.sh
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
