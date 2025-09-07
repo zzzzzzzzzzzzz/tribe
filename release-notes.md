@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* Updated db-init service script. PR [#8](https://github.com/zzzzzzzzzzzzz/tribe/pull/8) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Added n8n setup. PR [#7](https://github.com/zzzzzzzzzzzzz/tribe/pull/7) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Fixed duckduckgo search. PR [#6](https://github.com/zzzzzzzzzzzzz/tribe/pull/6) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Made more efforts to deal with memory leak. PR [#5](https://github.com/zzzzzzzzzzzzz/tribe/pull/5) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
