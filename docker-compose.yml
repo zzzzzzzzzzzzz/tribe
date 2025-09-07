@@ -278,7 +278,8 @@ services:
     restart: always
     depends_on: [db, redis]
     networks: [default]
-    command: ["/usr/local/bin/n8n", "worker"]      # bypass PATH
+    command: ["worker"]                     # <-- only the subcommand
+    user: "node"                            # matches the image’s expected user
     environment:
       # must match the main instance
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY?Variable not set}
