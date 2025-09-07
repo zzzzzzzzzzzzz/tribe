@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* switched to running separate file with script to init n8n db. PR [#10](https://github.com/zzzzzzzzzzzzz/tribe/pull/10) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Changed run command once again. PR [#9](https://github.com/zzzzzzzzzzzzz/tribe/pull/9) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Updated db-init service script. PR [#8](https://github.com/zzzzzzzzzzzzz/tribe/pull/8) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Added n8n setup. PR [#7](https://github.com/zzzzzzzzzzzzz/tribe/pull/7) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
