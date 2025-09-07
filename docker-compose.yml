@@ -215,25 +215,6 @@ services:
       # Middleware to redirect www, and redirect HTTP to HTTPS
       # to disable www redirection remove the section: ${STACK_NAME?Variable not set}-www-redirect,
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
-  n8n-db-init:
-    image: postgres:12
-    restart: "no"
-    depends_on:
-      - db
-    networks:
-      - default
-    environment:
-      - PGPASSWORD=${POSTGRES_PASSWORD?Variable not set}          # superuser password
-      - PGHOST=db
-      - PGPORT=${POSTGRES_PORT}
-      - PGUSER=${POSTGRES_USER?Variable not set}                  # superuser (from your db service)
-      - N8N_DB=${POSTGRES_DB_N8N?Variable not set}
-      - N8N_USER=${POSTGRES_USER_N8N?Variable not set}
-      - N8N_PASS=${POSTGRES_PASSWORD_N8N?Variable not set}
-    volumes:
-      - ./scripts/n8n-db-init.sh:/usr/local/bin/n8n-db-init.sh:ro
-    entrypoint: ["/usr/bin/env","bash","-lc"]
-    command: bash /usr/local/bin/n8n-db-init.sh
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
@@ -297,7 +278,7 @@ services:
     restart: always
     depends_on: [db, redis]
     networks: [default]
-    command: ["n8n", "worker"]
+    command: ["/usr/local/bin/n8n", "worker"]      # bypass PATH
     environment:
       # must match the main instance
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY?Variable not set}
