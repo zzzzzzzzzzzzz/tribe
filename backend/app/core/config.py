@@ -141,7 +141,7 @@ class Settings(BaseSettings):
 
     # Qdrant
     QDRANT__SERVICE__API_KEY: str
-    QDRANT_URL: str = "http://qdrant:6334"
+    QDRANT_URL: str = "http://qdrant:6333"  # Default for Docker Compose setup
     QDRANT_COLLECTION: str = "uploads"
 
     # Celery
