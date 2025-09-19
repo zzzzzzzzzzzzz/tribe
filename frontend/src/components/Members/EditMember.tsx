@@ -252,8 +252,8 @@ export function EditMember({
                 {...register("name", {
                   required: "Name is required.",
                   pattern: {
-                    value: /^[a-zA-Z0-9_-]{1,64}$/,
-                    message: "Name must follow pattern: ^[a-zA-Z0-9_-]{1,64}$",
+                    value: /^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$/,
+                    message: "Name can contain letters (Latin and Cyrillic), numbers, spaces, underscores, and dashes. Max length: 64 characters.",
                   },
                 })}
                 placeholder="Name"
