@@ -104,7 +104,7 @@ export function FreelancerNode({ data }: NodeProps<FreelancerNodeData>) {
             top="1"
             width="10rem"
           >
-            Approval Required
+            Нужно одобрение
           </Text>
         )}
       </LimitConnectionHandle>

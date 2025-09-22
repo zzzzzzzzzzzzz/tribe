@@ -33,7 +33,7 @@ function Uploads() {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так", `${errDetail}`, "error")
   }
 
   return (
@@ -51,7 +51,7 @@ function Uploads() {
               textAlign={{ base: "center", md: "left" }}
               pt={12}
             >
-              Uploads Management
+              Менеджер загрузок
             </Heading>
             <Navbar type={"Upload"} />
             <TableContainer>
@@ -59,10 +59,10 @@ function Uploads() {
                 <Thead>
                   <Tr>
                     <Th>ID</Th>
-                    <Th>Name</Th>
-                    <Th>Last Modified</Th>
-                    <Th>Status</Th>
-                    <Th>Actions</Th>
+                    <Th>Имя</Th>
+                    <Th>Последнее изменение</Th>
+                    <Th>Статус</Th>
+                    <Th>Действия</Th>
                   </Tr>
                 </Thead>
                 <Tbody>

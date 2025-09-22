@@ -90,13 +90,13 @@ const AddUpload = ({ isOpen, onClose }: AddUploadProps) => {
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isRequired isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name">Название</FormLabel>
               <Input
                 id="name"
                 {...register("name", {
                   pattern: {
                     value: /^[a-zA-Z0-9_-]{1,64}$/,
-                    message: "Name must follow pattern: ^[a-zA-Z0-9_-]{1,64}$",
+                    message: "Название должно соответствовать шаблону: ^[a-zA-Z0-9_-]{1,64}$",
                   },
                 })}
                 type="text"
@@ -106,7 +106,7 @@ const AddUpload = ({ isOpen, onClose }: AddUploadProps) => {
               )}
             </FormControl>
             <FormControl isRequired isInvalid={!!errors.description} mt={4}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description")}
@@ -118,10 +118,10 @@ const AddUpload = ({ isOpen, onClose }: AddUploadProps) => {
               name="file"
               acceptedFileTypes="application/pdf"
               isRequired={true}
-              placeholder="Your file"
+              placeholder="Ваш файл"
               control={control}
             >
-              Upload File
+              Загрузить файл
             </FileUpload>
             <Controller
               control={control}
@@ -132,7 +132,7 @@ const AddUpload = ({ isOpen, onClose }: AddUploadProps) => {
                 fieldState: { error },
               }) => (
                 <FormControl mt={4} isRequired isInvalid={!!error}>
-                  <FormLabel htmlFor="temperature">Chunk Size</FormLabel>
+                  <FormLabel htmlFor="temperature">Размер чанка</FormLabel>
                   <NumberInput
                     id="chunk_size"
                     name={name}
@@ -161,7 +161,7 @@ const AddUpload = ({ isOpen, onClose }: AddUploadProps) => {
                 fieldState: { error },
               }) => (
                 <FormControl mt={4} isRequired isInvalid={!!error}>
-                  <FormLabel htmlFor="temperature">Chunk Overlap</FormLabel>
+                  <FormLabel htmlFor="temperature">Перекрытие чанков</FormLabel>
                   <NumberInput
                     id="chunk_overlap"
                     name={name}

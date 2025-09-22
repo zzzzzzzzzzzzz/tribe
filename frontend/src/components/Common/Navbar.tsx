@@ -40,7 +40,10 @@ const Navbar = ({ type }: NavbarProps) => {
                   : addUploadModal.onOpen
           }
         >
-          <Icon as={FaPlus} /> Add {type}
+          <Icon as={FaPlus} /> Добавить {type === "User" ? "пользователя" :
+                                            type === "Team" ? "команду" :
+                                            type === "Skill" ? "навык" :
+                                            "загрузку"}
         </Button>
         <AddUser isOpen={addUserModal.isOpen} onClose={addUserModal.onClose} />
         <AddTeam isOpen={addTeamModal.isOpen} onClose={addTeamModal.onClose} />

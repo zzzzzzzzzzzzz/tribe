@@ -15,14 +15,14 @@ const DeleteAccount = () => {
     <>
       <Container maxW="full">
         <Heading size="sm" py={4}>
-          Delete Account
+          Удалить аккаунт
         </Heading>
         <Text>
-          Permanently delete your data and everything associated with your
-          account.
+          Навсегда удалить ваши данные и всё, что связано с вашей
+          учетной записью.
         </Text>
         <Button variant="danger" mt={4} onClick={confirmationModal.onOpen}>
-          Delete
+          Удалить
         </Button>
         <DeleteConfirmation
           isOpen={confirmationModal.isOpen}

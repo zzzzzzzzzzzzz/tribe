@@ -47,13 +47,13 @@ const AddApiKey = ({ teamId, isOpen, onClose }: AddApiKeyProps) => {
 
   const mutation = useMutation(addApiKey, {
     onSuccess: (data) => {
-      showToast("Success!", "API key created successfully.", "success")
+      showToast("Успешно!", "API ключ успешно создан.", "success")
       setApiKey(data.key)
       reset()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("apikeys")
@@ -80,15 +80,15 @@ const AddApiKey = ({ teamId, isOpen, onClose }: AddApiKeyProps) => {
       >
         <ModalOverlay />
        {!apiKey ? <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Create an API key</ModalHeader>
+          <ModalHeader>Создать API ключ</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isInvalid={!!errors.description}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description")}
-                placeholder="Description..."
+                placeholder="Описание..."
                 type="text"
               />
               {errors.description && (
@@ -103,12 +103,12 @@ const AddApiKey = ({ teamId, isOpen, onClose }: AddApiKeyProps) => {
               isLoading={isSubmitting || mutation.isLoading}
               isDisabled={!isValid}
             >
-              Create API key
+              Создать API ключ
             </Button>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>Отмена</Button>
           </ModalFooter>
         </ModalContent> : <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Copy your new API key</ModalHeader>
+          <ModalHeader>Скопируйте ваш новый API ключ</ModalHeader>
           <ModalBody pb={6}>
             <CopyInput value={apiKey} />
           </ModalBody>
@@ -116,7 +116,7 @@ const AddApiKey = ({ teamId, isOpen, onClose }: AddApiKeyProps) => {
             <Button
               onClick={closeModalHandler}
             >
-              I've copied the API key to a safe place
+              Я сохранил API ключ в надежном месте
             </Button>
           </ModalFooter>
         </ModalContent>}

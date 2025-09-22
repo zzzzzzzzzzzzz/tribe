@@ -138,7 +138,7 @@ export function EditMember({
   if (isErrorSkills || isErrorUploads) {
     const error = errorSkills || errorUploads
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так.", `${errDetail}`, "error")
   }
 
   const {
@@ -177,13 +177,13 @@ export function EditMember({
 
   const mutation = useMutation(updateMember, {
     onSuccess: (data) => {
-      showToast("Success!", "Team updated successfully.", "success")
+      showToast("Успех!", "Участник команды успешно обновлен.", "success")
       reset(data) // reset isDirty after updating
       onClose()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries(`teams/${teamId}/members`)
@@ -232,7 +232,7 @@ export function EditMember({
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay>
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Update Team Member</ModalHeader>
+          <ModalHeader>Изменить участника команды</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl
@@ -240,23 +240,23 @@ export function EditMember({
                 member.type === "root" || member.type.startsWith("freelancer")
               }
             >
-              <FormLabel htmlFor="type">Type</FormLabel>
+              <FormLabel htmlFor="type">Тип</FormLabel>
               <Select id="type" {...register("type")}>
                 {memberConfig.selection.map((member, index) => (<option key={index} value={member}>{member}</option>))}
               </Select>
             </FormControl>
             <FormControl mt={4} isRequired isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name">Имя</FormLabel>
               <Input
                 id="name"
                 {...register("name", {
-                  required: "Name is required.",
+                  required: "Имя обязательно для заполнения.",
                   pattern: {
                     value: /^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$/,
-                    message: "Name can contain letters (Latin and Cyrillic), numbers, spaces, underscores, and dashes. Max length: 64 characters.",
+                    message: "Имя может содержать буквы (латиница и кириллица), цифры, пробелы, подчеркивания и дефисы. Максимальная длина: 64 символа.",
                   },
                 })}
-                placeholder="Name"
+                placeholder="Имя"
                 type="text"
               />
               {errors.name && (
@@ -264,11 +264,11 @@ export function EditMember({
               )}
             </FormControl>
             <FormControl mt={4} isRequired isInvalid={!!errors.role}>
-              <FormLabel htmlFor="role">Role</FormLabel>
+              <FormLabel htmlFor="role">Роль</FormLabel>
               <Textarea
                 id="role"
-                {...register("role", { required: "Role is required." })}
-                placeholder="Role"
+                {...register("role", { required: "Роль обязательна для заполнения." })}
+                placeholder="Роль"
                 className="nodrag nopan"
               />
               {errors.role && (
@@ -276,7 +276,7 @@ export function EditMember({
               )}
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel htmlFor="backstory">Backstory</FormLabel>
+              <FormLabel htmlFor="backstory">Предыстория</FormLabel>
               <Textarea
                 id="backstory"
                 {...register("backstory")}
@@ -291,7 +291,7 @@ export function EditMember({
                 fieldState: { error },
               }) => (
                 <FormControl mt={4} isInvalid={!!error} id="skills">
-                  <FormLabel>Skills</FormLabel>
+                  <FormLabel>Навыки</FormLabel>
                   <MultiSelect
                     isDisabled={!memberConfig.enableTools}
                     isLoading={isLoadingSkills}
@@ -302,7 +302,7 @@ export function EditMember({
                     onBlur={onBlur}
                     value={value}
                     options={skillOptions}
-                    placeholder="Select skills"
+                    placeholder="Выберите навыки"
                     closeMenuOnSelect={false}
                     components={customSelectOption}
                   />
@@ -318,7 +318,7 @@ export function EditMember({
                 fieldState: { error },
               }) => (
                 <FormControl mt={4} isInvalid={!!error} id="uploads">
-                  <FormLabel>Knowledge Base</FormLabel>
+                  <FormLabel>База знаний</FormLabel>
                   <MultiSelect
                     isDisabled={!memberConfig.enableTools}
                     isLoading={isLoadingUploads}
@@ -329,7 +329,7 @@ export function EditMember({
                     onBlur={onBlur}
                     value={value}
                     options={uploadOptions}
-                    placeholder="Select uploads"
+                    placeholder="Выберите файлы"
                     closeMenuOnSelect={false}
                     components={customSelectOption}
                   />
@@ -339,14 +339,14 @@ export function EditMember({
             />
             {memberConfig.enableInterrupt && (
               <FormControl mt={4}>
-                <FormLabel htmlFor="interrupt">Human In The Loop</FormLabel>
+                <FormLabel htmlFor="interrupt">Человек в цикле</FormLabel>
                 <Checkbox {...register("interrupt")}>
-                  Require approval before executing actions
+                  Требовать одобрения перед выполнением действий
                 </Checkbox>
               </FormControl>
             )}
             <FormControl mt={4} isRequired isInvalid={!!errors.provider}>
-              <FormLabel htmlFor="provider">Provider</FormLabel>
+              <FormLabel htmlFor="provider">Провайдер</FormLabel>
               <Select
                 id="provider"
                 {...register("provider", {
@@ -374,7 +374,7 @@ export function EditMember({
               }) => {
                 return (
                   <FormControl mt={4} isRequired isInvalid={!!error}>
-                    <FormLabel htmlFor="model">Model</FormLabel>
+                    <FormLabel htmlFor="model">Модель</FormLabel>
                     <CreatableSelect
                       id="model"
                       name={name}
@@ -386,7 +386,7 @@ export function EditMember({
                       useBasicStyles
                     />
                     <FormHelperText>
-                      If a model is not listed, you can type it in.
+                      Если модель отсутствует в списке, вы можете ввести её вручную.
                     </FormHelperText>
                   </FormControl>
                 )
@@ -394,11 +394,11 @@ export function EditMember({
             />
             {(modelProvider === "openai") && (
               <FormControl mt={4} isInvalid={!!errors.base_url}>
-                <FormLabel htmlFor="model">Proxy Provider</FormLabel>
+                <FormLabel htmlFor="model">Прокси провайдер</FormLabel>
                 <Input
                   id="base_url"
                   {...register("base_url")}
-                  placeholder="Base URL"
+                  placeholder="Базовый URL"
                 />
               </FormControl>
             )}
@@ -411,7 +411,7 @@ export function EditMember({
                 fieldState: { error },
               }) => (
                 <FormControl mt={4} isRequired isInvalid={!!error}>
-                  <FormLabel htmlFor="temperature">Temperature</FormLabel>
+                  <FormLabel htmlFor="temperature">Температура</FormLabel>
                   <Slider
                     id="temperature"
                     name={name}
@@ -449,9 +449,9 @@ export function EditMember({
               isLoading={isSubmitting || mutation.isLoading}
               isDisabled={!isDirty || !isValid}
             >
-              Save
+              Сохранить
             </Button>
-            <Button onClick={onCancel}>Cancel</Button>
+            <Button onClick={onCancel}>Отмена</Button>
           </ModalFooter>
         </ModalContent>
       </ModalOverlay>

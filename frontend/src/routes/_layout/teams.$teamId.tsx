@@ -71,7 +71,7 @@ function Team() {
             >
               <BreadcrumbItem>
                 <BreadcrumbLink as={Link} to="/teams">
-                  Teams
+                  Команды
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbItem isCurrentPage>
@@ -94,10 +94,10 @@ function Team() {
               onChange={setTabIndex}
             >
               <TabList>
-                <Tab>Build</Tab>
-                <Tab>Chat</Tab>
-                <Tab>Threads</Tab>
-                <Tab>Configure</Tab>
+                <Tab>Конструктор</Tab>
+                <Tab>Чат</Tab>
+                <Tab>Диалоги</Tab>
+                <Tab>Настройки</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel height="80vh">

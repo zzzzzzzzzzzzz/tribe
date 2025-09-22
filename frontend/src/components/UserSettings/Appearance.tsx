@@ -15,19 +15,19 @@ const Appearance = () => {
     <>
       <Container maxW="full">
         <Heading size="sm" py={4}>
-          Appearance
+          Внешний вид
         </Heading>
         <RadioGroup onChange={toggleColorMode} value={colorMode}>
           <Stack>
             {/* TODO: Add system default option */}
             <Radio value="light" colorScheme="teal">
-              Light mode
+              Светлая тема
               <Badge ml="1" colorScheme="teal">
-                Default
+                По умолчанию
               </Badge>
             </Radio>
             <Radio value="dark" colorScheme="teal">
-              Dark mode
+              Темная тема
             </Radio>
           </Stack>
         </RadioGroup>

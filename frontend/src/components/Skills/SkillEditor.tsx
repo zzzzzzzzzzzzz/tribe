@@ -13,19 +13,19 @@ export const skillPlaceholder = {
   headers: {},
   type: "function",
   function: {
-    name: "Enter skill name",
-    description: "Enter skill description",
+    name: "Введите название навыка",
+    description: "Введите описание навыка",
     parameters: {
       type: "object",
       properties: {
         param1: {
           type: "integer",
-          description: "Describe this parameter",
+          description: "Опишите этот параметр",
         },
         param2: {
           type: "string",
           enum: ["option1"],
-          description: "Select from the provided options",
+          description: "Выберите из предложенных вариантов",
         },
       },
       required: ["param1", "param2"],

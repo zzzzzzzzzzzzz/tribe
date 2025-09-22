@@ -54,7 +54,7 @@ export const FileUpload = ({
           style={{ display: "none" }}
         />
         <Input
-          placeholder={placeholder || "Your file ..."}
+          placeholder={placeholder || "Ваш файл ..."}
           onClick={() => inputRef?.current?.click()}
           readOnly={true}
           value={value?.name || ""}

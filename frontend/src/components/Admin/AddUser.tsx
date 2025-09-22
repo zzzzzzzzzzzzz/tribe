@@ -59,13 +59,13 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
 
   const mutation = useMutation(addUser, {
     onSuccess: () => {
-      showToast("Success!", "User created successfully.", "success")
+      showToast("Успех!", "Пользователь успешно создан.", "success")
       reset()
       onClose()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("users")
@@ -86,7 +86,7 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
       >
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Add User</ModalHeader>
+          <ModalHeader>Добавить пользователя</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isRequired isInvalid={!!errors.email}>
@@ -94,7 +94,7 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
               <Input
                 id="email"
                 {...register("email", {
-                  required: "Email is required",
+                  required: "Email обязателен",
                   pattern: emailPattern,
                 })}
                 placeholder="Email"
@@ -105,11 +105,11 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
               )}
             </FormControl>
             <FormControl mt={4} isInvalid={!!errors.full_name}>
-              <FormLabel htmlFor="name">Full name</FormLabel>
+              <FormLabel htmlFor="name">Полное имя</FormLabel>
               <Input
                 id="name"
                 {...register("full_name")}
-                placeholder="Full name"
+                placeholder="Полное имя"
                 type="text"
               />
               {errors.full_name && (
@@ -117,17 +117,17 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
               )}
             </FormControl>
             <FormControl mt={4} isRequired isInvalid={!!errors.password}>
-              <FormLabel htmlFor="password">Set Password</FormLabel>
+              <FormLabel htmlFor="password">Установить пароль</FormLabel>
               <Input
                 id="password"
                 {...register("password", {
-                  required: "Password is required",
+                  required: "Пароль обязателен",
                   minLength: {
                     value: 8,
-                    message: "Password must be at least 8 characters",
+                    message: "Пароль должен быть не менее 8 символов",
                   },
                 })}
-                placeholder="Password"
+                placeholder="Пароль"
                 type="password"
               />
               {errors.password && (
@@ -139,16 +139,16 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
               isRequired
               isInvalid={!!errors.confirm_password}
             >
-              <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+              <FormLabel htmlFor="confirm_password">Подтвердите пароль</FormLabel>
               <Input
                 id="confirm_password"
                 {...register("confirm_password", {
-                  required: "Please confirm your password",
+                  required: "Пожалуйста, подтвердите пароль",
                   validate: (value) =>
                     value === getValues().password ||
-                    "The passwords do not match",
+                    "Пароли не совпадают",
                 })}
-                placeholder="Password"
+                placeholder="Пароль"
                 type="password"
               />
               {errors.confirm_password && (
@@ -160,21 +160,21 @@ const AddUser = ({ isOpen, onClose }: AddUserProps) => {
             <Flex mt={4}>
               <FormControl>
                 <Checkbox {...register("is_superuser")} colorScheme="teal">
-                  Is superuser?
+                  Суперпользователь?
                 </Checkbox>
               </FormControl>
               <FormControl>
                 <Checkbox {...register("is_active")} colorScheme="teal">
-                  Is active?
+                  Активный?
                 </Checkbox>
               </FormControl>
             </Flex>
           </ModalBody>
           <ModalFooter gap={3}>
             <Button variant="primary" type="submit" isLoading={isSubmitting}>
-              Save
+              Сохранить
             </Button>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>Отмена</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

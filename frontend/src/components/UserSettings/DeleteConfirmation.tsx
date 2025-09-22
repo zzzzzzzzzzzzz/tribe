@@ -38,8 +38,8 @@ const DeleteConfirmation = ({ isOpen, onClose }: DeleteProps) => {
   const mutation = useMutation(deleteCurrentUser, {
     onSuccess: () => {
       showToast(
-        "Success",
-        "Your account has been successfully deleted.",
+        "Успех",
+        "Ваш аккаунт был успешно удален.",
         "success",
       )
       logout()
@@ -47,7 +47,7 @@ const DeleteConfirmation = ({ isOpen, onClose }: DeleteProps) => {
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("currentUser")
@@ -69,25 +69,24 @@ const DeleteConfirmation = ({ isOpen, onClose }: DeleteProps) => {
       >
         <AlertDialogOverlay>
           <AlertDialogContent as="form" onSubmit={handleSubmit(onSubmit)}>
-            <AlertDialogHeader>Confirmation Required</AlertDialogHeader>
+            <AlertDialogHeader>Требуется подтверждение</AlertDialogHeader>
 
             <AlertDialogBody>
-              All your account data will be{" "}
-              <strong>permanently deleted.</strong> If you are sure, please
-              click <strong>"Confirm"</strong> to proceed. This action cannot be
-              undone.
+              Все данные вашего аккаунта будут{" "}
+              <strong>удалены безвозвратно.</strong> Если вы уверены, нажмите{" "}
+              <strong>"Подтвердить"</strong>. Это действие нельзя будет отменить.
             </AlertDialogBody>
 
             <AlertDialogFooter gap={3}>
               <Button variant="danger" type="submit" isLoading={isSubmitting}>
-                Confirm
+                Подтвердить
               </Button>
               <Button
                 ref={cancelRef}
                 onClick={onClose}
                 isDisabled={isSubmitting}
               >
-                Cancel
+                Отмена
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

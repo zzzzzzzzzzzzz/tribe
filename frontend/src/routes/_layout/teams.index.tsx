@@ -38,7 +38,7 @@ function Teams() {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так.", `${errDetail}`, "error")
   }
 
   const handleRowClick = (teamId: string) => {
@@ -60,17 +60,17 @@ function Teams() {
               textAlign={{ base: "center", md: "left" }}
               pt={12}
             >
-              Teams Management
+              Управление командами
             </Heading>
             <Navbar type={"Team"} />
             <TableContainer>
               <Table size={{ base: "sm", md: "md" }}>
                 <Thead>
                   <Tr>
-                    <Th>Name</Th>
-                    <Th>Description</Th>
-                    <Th>Workflow</Th>
-                    <Th>Actions</Th>
+                    <Th>Название</Th>
+                    <Th>Описание</Th>
+                    <Th>Рабочий процесс</Th>
+                    <Th>Действия</Th>
                   </Tr>
                 </Thead>
                 <Tbody>

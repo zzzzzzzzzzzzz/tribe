@@ -43,8 +43,8 @@ function RecoverPassword() {
       email: data.email,
     })
     showToast(
-      "Email sent.",
-      "We sent an email with a link to get back into your account.",
+      "Email отправлен.",
+      "Мы отправили вам письмо со ссылкой на восстановление аккаунта.",
       "success",
     )
   }
@@ -61,10 +61,10 @@ function RecoverPassword() {
       centerContent
     >
       <Heading size="xl" color="ui.main" textAlign="center" mb={2}>
-        Password Recovery
+        Восстановление пароля
       </Heading>
       <Text align="center">
-        A password recovery email will be sent to the registered account.
+        Письмо со ссылкой на восстановление пароля будет отправлено на указанный адрес электронной почты.
       </Text>
       <FormControl isInvalid={!!errors.email}>
         <Input
@@ -81,7 +81,7 @@ function RecoverPassword() {
         )}
       </FormControl>
       <Button variant="primary" type="submit" isLoading={isSubmitting}>
-        Continue
+        Продолжить
       </Button>
     </Container>
   )

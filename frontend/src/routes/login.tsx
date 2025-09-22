@@ -129,11 +129,11 @@ function Login() {
         </FormControl>
         <Center>
           <Link as={RouterLink} to="/recover-password" color="blue.500">
-            Forgot password?
+            Забыли пароль?
           </Link>
         </Center>
         <Button variant="primary" type="submit" isLoading={isSubmitting}>
-          Log In
+          Войти
         </Button>
       </Container>
     </>

@@ -9,11 +9,11 @@ import { GiSpellBook } from "react-icons/gi"
 import { SlDrawer } from "react-icons/sl"
 
 const items = [
-  { icon: FiHome, title: "Dashboard", path: "/" },
-  { icon: LuNetwork, title: "Teams", path: "/teams" },
-  { icon: GiSpellBook, title: "Skills", path: "/skills" },
-  { icon: SlDrawer, title: "Uploads", path: "/uploads" },
-  { icon: FiSettings, title: "User Settings", path: "/settings" },
+  { icon: FiHome, title: "Панель управления", path: "/" },
+  { icon: LuNetwork, title: "Команды", path: "/teams" },
+  { icon: GiSpellBook, title: "Навыки", path: "/skills" },
+  { icon: SlDrawer, title: "Загрузки", path: "/uploads" },
+  { icon: FiSettings, title: "Настройки", path: "/settings" },
 ]
 
 interface SidebarItemsProps {
@@ -27,7 +27,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const currentUser = queryClient.getQueryData<UserOut>("currentUser")
 
   const finalItems = currentUser?.is_superuser
-    ? [...items, { icon: FiUsers, title: "Admin", path: "/admin" }]
+    ? [...items, { icon: FiUsers, title: "Администрирование", path: "/admin" }]
     : items
 
   const listItems = finalItems.map((item) => (

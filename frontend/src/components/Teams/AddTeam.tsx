@@ -48,13 +48,13 @@ const AddTeam = ({ isOpen, onClose }: AddTeamProps) => {
 
   const mutation = useMutation(addTeam, {
     onSuccess: () => {
-      showToast("Success!", "Team created successfully.", "success")
+      showToast("Успешно!", "Команда успешно создана.", "success")
       reset()
       onClose()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("teams")
@@ -75,21 +75,21 @@ const AddTeam = ({ isOpen, onClose }: AddTeamProps) => {
       >
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Add Team</ModalHeader>
+          <ModalHeader>Добавить команду</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isRequired isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name">Название</FormLabel>
               <Input
                 id="title"
                 {...register("name", {
-                  required: "Title is required.",
+                  required: "Название обязательно.",
                   pattern: {
                     value: /^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$/,
-                    message: "Name can contain letters (Latin and Cyrillic), numbers, spaces, underscores, and dashes. Max length: 64 characters.",
+                    message: "Название может содержать буквы (латиница и кириллица), цифры, пробелы, подчеркивания и дефисы. Макс. длина: 64 символа.",
                   },
                 })}
-                placeholder="Title"
+                placeholder="Название"
                 type="text"
               />
               {errors.name && (
@@ -97,25 +97,25 @@ const AddTeam = ({ isOpen, onClose }: AddTeamProps) => {
               )}
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description")}
-                placeholder="Description"
+                placeholder="Описание"
                 type="text"
               />
             </FormControl>
             <FormControl isRequired mt={4}>
-              <FormLabel htmlFor="description">Workflow</FormLabel>
+              <FormLabel htmlFor="description">Рабочий процесс</FormLabel>
               <Select
                 id="workflow"
                 {...register("workflow", { required: true })}
               >
-                <option value="hierarchical">Hierarchical</option>
-                <option value="sequential">Sequential</option>
+                <option value="hierarchical">Иерархический</option>
+                <option value="sequential">Последовательный</option>
               </Select>
               <FormHelperText>
-                You cannot change workflow after creation.
+                Вы не сможете изменить рабочий процесс после создания.
               </FormHelperText>
             </FormControl>
           </ModalBody>
@@ -127,9 +127,9 @@ const AddTeam = ({ isOpen, onClose }: AddTeamProps) => {
               isLoading={isSubmitting}
               isDisabled={!isValid}
             >
-              Save
+              Сохранить
             </Button>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>Отмена</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

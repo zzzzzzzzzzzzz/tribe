@@ -17,10 +17,10 @@ import DeleteAccount from "../../components/UserSettings/DeleteAccount"
 import UserInformation from "../../components/UserSettings/UserInformation"
 
 const tabsConfig = [
-  { title: "My profile", component: UserInformation },
-  { title: "Password", component: ChangePassword },
-  { title: "Appearance", component: Appearance },
-  { title: "Danger zone", component: DeleteAccount },
+  { title: "Мой профиль", component: UserInformation },
+  { title: "Пароль", component: ChangePassword },
+  { title: "Внешний вид", component: Appearance },
+  { title: "Опасная зона", component: DeleteAccount },
 ]
 
 export const Route = createFileRoute("/_layout/settings")({
@@ -37,7 +37,7 @@ function UserSettings() {
   return (
     <Container maxW="full">
       <Heading size="lg" textAlign={{ base: "center", md: "left" }} py={12}>
-        User Settings
+        Настройки пользователя
       </Heading>
       <Tabs variant="enclosed">
         <TabList>

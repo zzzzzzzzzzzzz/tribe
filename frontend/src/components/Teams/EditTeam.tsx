@@ -49,13 +49,13 @@ const EditTeam = ({ team, isOpen, onClose }: EditTeamProps) => {
 
   const mutation = useMutation(updateTeam, {
     onSuccess: (data) => {
-      showToast("Success!", "Team updated successfully.", "success")
+      showToast("Успешно!", "Команда успешно обновлена.", "success")
       reset(data) // reset isDirty after updating
       onClose()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("teams")
@@ -81,18 +81,18 @@ const EditTeam = ({ team, isOpen, onClose }: EditTeamProps) => {
       >
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Edit Team</ModalHeader>
+          <ModalHeader>Редактировать команду</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name">Название</FormLabel>
               <Input
                 id="name"
                 {...register("name", {
-                  required: "Name is required",
+                  required: "Название обязательно",
                   pattern: {
                     value: /^[a-zA-Z0-9_-]{1,64}$/,
-                    message: "Name must follow pattern: ^[a-zA-Z0-9_-]{1,64}$",
+                    message: "Название должно соответствовать шаблону: ^[a-zA-Z0-9_-]{1,64}$",
                   },
                 })}
                 type="text"
@@ -102,11 +102,11 @@ const EditTeam = ({ team, isOpen, onClose }: EditTeamProps) => {
               )}
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description")}
-                placeholder="Description"
+                placeholder="Описание"
                 type="text"
               />
             </FormControl>
@@ -118,9 +118,9 @@ const EditTeam = ({ team, isOpen, onClose }: EditTeamProps) => {
               isLoading={isSubmitting || mutation.isLoading}
               isDisabled={!isDirty || !isValid}
             >
-              Save
+              Сохранить
             </Button>
-            <Button onClick={onCancel}>Cancel</Button>
+            <Button onClick={onCancel}>Отмена</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

@@ -55,13 +55,13 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
 
   const mutation = useMutation(updateSkill, {
     onSuccess: (data) => {
-      showToast("Success!", "Skill updated successfully.", "success")
+      showToast("Успех!", "Навык успешно обновлен.", "success")
       reset(data) // reset isDirty after updating
       onClose()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("skills")
@@ -91,18 +91,18 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
       >
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Edit Skill</ModalHeader>
+          <ModalHeader>Редактировать навык</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <FormControl isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name">Название</FormLabel>
               <Input
                 id="name"
                 {...register("name", {
-                  required: "Name is required",
+                  required: "Название обязательно для заполнения",
                   pattern: {
                     value: /^[a-zA-Z0-9_-]{1,64}$/,
-                    message: "Name must follow pattern: ^[a-zA-Z0-9_-]{1,64}$",
+                    message: "Название должно соответствовать шаблону: ^[a-zA-Z0-9_-]{1,64}$",
                   },
                 })}
                 type="text"
@@ -112,13 +112,13 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
               )}
             </FormControl>
             <FormControl isRequired isInvalid={!!errors.description} mt={4}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description", {
-                  required: "Description is required",
+                  required: "Описание обязательно для заполнения",
                 })}
-                placeholder="Description"
+                placeholder="Описание"
                 type="text"
               />
             </FormControl>
@@ -136,7 +136,7 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
                   mt={4}
                 >
                   <FormLabel htmlFor="tool_definition">
-                    Skill Definition
+                    Определение навыка
                   </FormLabel>
                   <SkillEditor
                     onChange={onChange}
@@ -154,7 +154,7 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
                     mt={2}
                     onClick={resetSkillDefinitionHandler}
                   >
-                    Reset Skill Definition
+                    Сбросить определение навыка
                   </Button>
                 </FormControl>
               )}
@@ -167,9 +167,9 @@ const EditSkill = ({ skill, isOpen, onClose }: EditSkillProps) => {
               isLoading={isSubmitting || mutation.isLoading}
               isDisabled={!isDirty || !isValid}
             >
-              Save
+              Сохранить
             </Button>
-            <Button onClick={onCancel}>Cancel</Button>
+            <Button onClick={onCancel}>Отмена</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

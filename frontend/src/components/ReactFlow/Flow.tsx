@@ -59,7 +59,7 @@ const FlowComponent = ({ initialNodes, initialEdges }: FlowComponentProps) => {
   const createMemberMutation = useMutation(createMember, {
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так", `${errDetail}`, "error")
     },
   })
   const addMember = async (data: MemberCreate) => {
@@ -72,7 +72,7 @@ const FlowComponent = ({ initialNodes, initialEdges }: FlowComponentProps) => {
   const deleteMemberMutation = useMutation(deleteMember, {
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так", `${errDetail}`, "error")
     },
   })
   const removeMember = (id: number) => {
@@ -154,9 +154,9 @@ const FlowComponent = ({ initialNodes, initialEdges }: FlowComponentProps) => {
           : "worker"
         // TODO: Fix bug when node.length is smaller than labelling due to deleted nodes
         const memberData = {
-          name: `Worker${nodes.length}`,
+          name: `Исполнитель-${nodes.length}`,
           backstory: null,
-          role: "Answer any questions you are given.",
+          role: "Ответь на вопросы, которые тебе заданы",
           // if previous node is a freelancer, than next node should be a freelancer
           type: newNodeType,
           belongs_to: teamId,
@@ -327,7 +327,7 @@ export default () => {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так", `${errDetail}`, "error")
   }
 
   const { nodes, edges } = members
