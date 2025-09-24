@@ -107,7 +107,7 @@ class GraphTeam(BaseModel):
 
     @property
     def persona(self) -> str:
-        return f"Name: {self.name}\nRole: {self.role}\nBackstory: {self.backstory}\n"
+        return f"Имя: {self.name}\nРоль: {self.role}\nКонтекст: {self.backstory}\n"
 
 
 def add_or_replace_messages(
@@ -201,15 +201,15 @@ class WorkerNode(BaseNode):
             (
                 "system",
                 (
-                    "You are a team member of {team_name} and you are one of the following team members: {team_members_name}.\n"
-                    "Your team members (and other teams) will collaborate with you with their own set of skills. "
-                    "You are chosen by one of your team member to perform this task. Try your best to perform it using your skills. "
-                    "Stay true to your persona and role:\n{persona}\n"
+                    "Вы являетесь участником команды {team_name} и одним из следующих её членов: {team_members_name}.\n"
+                    "Ваши коллеги по команде (и другие команды) будут сотрудничать с вами, используя свой набор навыков. "
+                    "Один из членов вашей команды выбрал именно вас для выполнения этой задачи. Постарайтесь выполнить её максимально хорошо, используя свои навыки. "
+                    "Оставайтесь верны своей персоне и роли:\n{persona}\n"
                 ),
             ),
             (
                 "human",
-                "Here is the task: \n\n {task_string} \n\n Here is the previous conversation: \n\n {history_string} \n\n Provide your response.",
+                "Задача: \n\n {task_string} \n\n История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
             MessagesPlaceholder(variable_name="messages"),
         ]
@@ -262,16 +262,16 @@ class SequentialWorkerNode(WorkerNode):
             (
                 "system",
                 (
-                    "Perform the task given to you.\n"
-                    "If you are unable to perform the task, that's OK, another member with different tools "
-                    "will help where you left off. Do not attempt to communicate with other members. "
-                    "Execute what you can to make progress. "
-                    "Stay true to your persona and role:\n{persona}\n\n"
+                    "Выполните заданную вам задачу.\n"
+                    "Если вы не сможете её выполнить — это нормально, другой участник с другими инструментами "
+                    "поможет продолжить с того места, где вы остановились. Не пытайтесь общаться с другими участниками. "
+                    "Выполните то, что сможете, чтобы обеспечить прогресс. "
+                    "Оставайтесь верны своей персоне и роли:\n{persona}\n\n"
                 ),
             ),
             (
                 "human",
-                "Here is the previous conversation: \n\n {history_string} \n\n Provide your response.",
+                "История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
             MessagesPlaceholder(variable_name="messages"),
         ]
@@ -329,20 +329,20 @@ class LeaderNode(BaseNode):
             (
                 "system",
                 (
-                    "You are the team leader of {team_name} and this is your role and you have the following team members: {team_members_name}.\n"
-                    "Your team is given a task and you have to delegate the work among your team members based on their skills.\n"
-                    "Team member info:"
+                    "Вы являетесь лидером команды {team_name}, это ваша роль, и у вас есть следующие участники: {team_members_name}.\n"
+                    "Вашей команде дана задача, и вы должны делегировать работу между участниками в зависимости от их навыков.\n"
+                    "Информация об участниках команды:"
                     "\n\n{team_members_info}\n\n"
-                    "Stay true to your persona:"
+                    "Оставайтесь верны своей персоне:"
                     "\n\n{persona}\n\n"
-                    "Given the conversation, decide who should act next. Or should we FINISH? Select one of: {options}."
+                    "Исходя из диалога, решите, кто должен действовать следующим. Или мы должны ЗАВЕРШИТЬ? Выберите один из вариантов: {options}."
                 ),
             ),
             (
                 "human",
                 (
-                    "Here is the team's task: \n\n {team_task} \n\n Here is the previous conversation: \n\n {history_string} \n\n"
-                    "Given the conversation, decide who should act next. Or should we FINISH? Select one of: {options}."
+                    "Вот задача для команды: \n\n {team_task} \n\n Вот предыдущий диалог: \n\n {history_string} \n\n"
+                    "Исходя из диалога, решите, кто должен действовать следующим. Или мы должны ЗАВЕРШИТЬ? Выберите один из вариантов: {options}."
                 ),
             ),
         ]
@@ -364,18 +364,18 @@ class LeaderNode(BaseNode):
             "function": {
                 "name": "route",
                 "description": (
-                    "Provide both a task and the next most appropriate team member to perform it."
-                    "\n'next' - The team member you should call."
-                    "\n'task' - The task given to the team member."
-                    "\nYou must provide both 'task' and 'next'."
-                    "\n\nExample:"
-                    "\nQn: How to cook food?"
-                    '\n{"task": "Provide cooking instructions", "next": "CookingExpert"}'
-                    "\n\nQn: How do you play soccer?"
-                    '\n{"task": "Provide advice to play soccer", "next": "SoccerTeam"}'
-                    "\n\nQn: How to make a dog happy?"
-                    "\nAns: Pat its head and rub its belly"
-                    '\n{"task": "No further tasks", "next": "FINISH"}'
+                    "Укажите одновременно задачу и следующего наиболее подходящего участника команды для её выполнения."
+                    "\n'next' — участник команды, которого вы должны вызвать."
+                    "\n'task' — задача, назначенная участнику."
+                    "\nВы должны указать и 'task', и 'next'."
+                    "\n\nПример:"
+                    "\nВопрос: Как приготовить еду?"
+                    '\n{"task": "Дать инструкцию по приготовлению еды", "next": "CookingExpert"}'
+                    "\n\nВопрос: Как играть в футбол?"
+                    '\n{"task": "Дать советы по игре в футбол", "next": "SoccerTeam"}'
+                    "\n\nВопрос: Как сделать собаку счастливой?"
+                    "\nОтвет: Погладить её по голове и почесать живот"
+                    '\n{"task": "Больше задач нет", "next": "FINISH"}'
                 ),
                 "parameters": {
                     "title": "routeSchema",
@@ -383,11 +383,11 @@ class LeaderNode(BaseNode):
                     "properties": {
                         "task": {
                             "title": "task",
-                            "description": "Provide the next task only if answer is still incomplete. Else say no further task.",
+                            "description": "Предоставьте следующую задачу только если ответ всё ещё неполный. В противном случае укажите, что больше задач нет.",
                         },
                         "next": {
                             "title": "next",
-                            "description": "Choose the next most appropriate team member if answer is still incomplete. Else choose FINISH.",
+                            "description": "Выберите следующего наиболее подходящего участника команды, если ответ всё ещё неполный. В противном случае выберите FINISH.",
                             "anyOf": [
                                 {"enum": options},
                             ],
@@ -444,14 +444,14 @@ class SummariserNode(BaseNode):
             (
                 "system",
                 (
-                    "You are a team member of {team_name} and you have the following team members: {team_members_name}. "
-                    "Your team was given a task and your team members have performed their roles and returned their responses to the team leader.\n\n"
-                    "Your role is to interpret the team's conversation and provide the final answer to the team's task.\n"
+                    "Вы являетесь участником команды {team_name}, в которой также состоят следующие участники: {team_members_name}. "
+                    "Вашей команде была дана задача, и её участники уже выполнили свои роли и передали ответы лидеру команды.\n\n"
+                    "Ваша роль — интерпретировать командный диалог и предоставить окончательный ответ на задачу команды.\n"
                 ),
             ),
             (
                 "human",
-                "Here is the team's task: \n\n {team_task} \n\n Here is the team's conversation: \n\n {history_string} \n\n Provide your response.",
+                "Вот задача для команды: \n\n {team_task} \n\n Вот диалог команды: \n\n {history_string} \n\n Предоставьте ваш ответ.",
             ),
         ]
     )
