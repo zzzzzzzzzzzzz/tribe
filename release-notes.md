@@ -2,6 +2,7 @@
 
 ## Latest Changes
 
+* Adding n8n configuration and init scripts. PR [#11](https://github.com/zzzzzzzzzzzzz/tribe/pull/11) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Russification. PR [#12](https://github.com/zzzzzzzzzzzzz/tribe/pull/12) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * switched to running separate file with script to init n8n db. PR [#10](https://github.com/zzzzzzzzzzzzz/tribe/pull/10) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
 * Changed run command once again. PR [#9](https://github.com/zzzzzzzzzzzzz/tribe/pull/9) by [@zzzzzzzzzzzzz](https://github.com/zzzzzzzzzzzzz).
