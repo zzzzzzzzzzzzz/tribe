@@ -44,7 +44,9 @@ const ActionsMenu = ({ type, value, disabled }: ActionsMenuProps) => {
             }}
             icon={<FiEdit fontSize="16px" />}
           >
-            Edit {type}
+            Изменить {type === "User" ? "пользователя" :
+                     type === "Team" ? "команду" :
+                     type === "Skill" ? "навык" : "загрузку"}
           </MenuItem>
           <MenuItem
             onClick={(e) => {
@@ -54,7 +56,9 @@ const ActionsMenu = ({ type, value, disabled }: ActionsMenuProps) => {
             icon={<FiTrash fontSize="16px" />}
             color="ui.danger"
           >
-            Delete {type}
+            Удалить {type === "User" ? "пользователя" :
+                    type === "Team" ? "команду" :
+                    type === "Skill" ? "навык" : "загрузку"}
           </MenuItem>
         </MenuList>
         {type === "User" ? (

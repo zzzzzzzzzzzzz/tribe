@@ -31,14 +31,14 @@ const UserMenu = () => {
         <Menu>
           <MenuButton
             as={IconButton}
-            aria-label="Options"
+            aria-label="Опции"
             icon={<FaUserAstronaut color="white" fontSize="18px" />}
             bg="ui.main"
             isRound
           />
           <MenuList>
             <MenuItem icon={<FiUser fontSize="18px" />} as={Link} to="settings">
-              My profile
+              Мой профиль
             </MenuItem>
             <MenuItem
               icon={<FiLogOut fontSize="18px" />}
@@ -46,7 +46,7 @@ const UserMenu = () => {
               color="ui.danger"
               fontWeight="bold"
             >
-              Log out
+              Выйти
             </MenuItem>
           </MenuList>
         </Menu>

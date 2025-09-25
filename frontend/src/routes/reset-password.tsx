@@ -58,13 +58,13 @@ function ResetPassword() {
 
   const mutation = useMutation(resetPassword, {
     onSuccess: () => {
-      showToast("Success!", "Password updated.", "success")
+      showToast("Успех!", "Пароль обновлен.", "success")
       reset()
       navigate({ to: "/login" })
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так", `${errDetail}`, "error")
     },
   })
 
@@ -84,23 +84,23 @@ function ResetPassword() {
       centerContent
     >
       <Heading size="xl" color="ui.main" textAlign="center" mb={2}>
-        Reset Password
+        Сброс пароля
       </Heading>
       <Text textAlign="center">
-        Please enter your new password and confirm it to reset your password.
+        Пожалуйста, введите новый пароль для вашего аккаунта.
       </Text>
       <FormControl mt={4} isInvalid={!!errors.new_password}>
         <FormLabel htmlFor="password">Set Password</FormLabel>
         <Input
           id="password"
           {...register("new_password", {
-            required: "Password is required",
+            required: "Пароль обязателен",
             minLength: {
               value: 8,
-              message: "Password must be at least 8 characters",
+              message: "Пароль должен состоять хотя бы из 8 символов",
             },
           })}
-          placeholder="Password"
+          placeholder="Пароль"
           type="password"
         />
         {errors.new_password && (
@@ -108,16 +108,16 @@ function ResetPassword() {
         )}
       </FormControl>
       <FormControl mt={4} isInvalid={!!errors.confirm_password}>
-        <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+        <FormLabel htmlFor="confirm_password">Подтвердить пароль</FormLabel>
         <Input
           id="confirm_password"
           {...register("confirm_password", {
-            required: "Please confirm your password",
+            required: "Пожалуйста, подтвердите пароль",
             validate: (value) =>
               value === getValues().new_password ||
-              "The passwords do not match",
+              "Пароли не совпадают",
           })}
-          placeholder="Password"
+          placeholder="Пароль"
           type="password"
         />
         {errors.confirm_password && (
@@ -125,7 +125,7 @@ function ResetPassword() {
         )}
       </FormControl>
       <Button variant="primary" type="submit">
-        Reset Password
+        Сбросить пароль
       </Button>
     </Container>
   )

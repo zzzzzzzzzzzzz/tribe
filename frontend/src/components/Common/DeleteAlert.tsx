@@ -53,16 +53,24 @@ const Delete = ({ type, id, isOpen, onClose }: DeleteProps) => {
     onSuccess: () => {
       if (type !== "Upload")
         showToast(
-          "Success",
-          `The ${type.toLowerCase()} was deleted successfully.`,
+          "Успешно",
+          `${type === "User" ? "Пользователь" :
+             type === "Team" ? "Команда" :
+             type === "Skill" ? "Навык" : "Загрузка"} успешно ${
+             type === "User" ? "удален" :
+             type === "Team" ? "удалена" :
+             type === "Skill" ? "удален" : "удалена"}.`,
           "success",
         )
       onClose()
     },
     onError: () => {
       showToast(
-        "An error occurred.",
-        `An error occurred while deleting the ${type.toLowerCase()}.`,
+        "Произошла ошибка",
+        `Ошибка при удалении ${
+          type === "User" ? "пользователя" :
+          type === "Team" ? "команды" :
+          type === "Skill" ? "навыка" : "загрузки"}.`,
         "error",
       )
     },
@@ -94,16 +102,20 @@ const Delete = ({ type, id, isOpen, onClose }: DeleteProps) => {
       >
         <AlertDialogOverlay>
           <AlertDialogContent as="form" onSubmit={handleSubmit(onSubmit)}>
-            <AlertDialogHeader>Delete {type}</AlertDialogHeader>
+            <AlertDialogHeader>
+              Удалить {type === "User" ? "пользователя" :
+                      type === "Team" ? "команду" :
+                      type === "Skill" ? "навык" : "загрузку"}
+            </AlertDialogHeader>
 
             <AlertDialogBody>
               {type === "User" && (
                 <span>
-                  All items associated with this user will also be{" "}
-                  <strong>permantly deleted. </strong>
+                  Все элементы, связанные с этим пользователем, также будут{" "}
+                  <strong>безвозвратно удалены. </strong>
                 </span>
               )}
-              Are you sure? You will not be able to undo this action.
+              Вы уверены? Это действие нельзя будет отменить.
             </AlertDialogBody>
 
             <AlertDialogFooter gap={3}>
@@ -112,14 +124,14 @@ const Delete = ({ type, id, isOpen, onClose }: DeleteProps) => {
                 type="submit"
                 isLoading={isSubmitting || mutation.isLoading}
               >
-                Delete
+                Удалить
               </Button>
               <Button
                 ref={cancelRef}
                 onClick={onClose}
                 isDisabled={isSubmitting}
               >
-                Cancel
+                Отмена
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

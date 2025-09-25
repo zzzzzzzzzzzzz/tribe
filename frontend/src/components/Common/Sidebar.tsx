@@ -73,12 +73,12 @@ const Sidebar = () => {
                   alignItems="center"
                 >
                   <FiLogOut />
-                  <Text ml={2}>Log out</Text>
+                  <Text ml={2}>Выйти</Text>
                 </Flex>
               </Box>
               {currentUser?.email && (
                 <Text color={textColor} noOfLines={2} fontSize="sm" p={2}>
-                  Logged in as: {currentUser.email}
+                  Вы вошли как: {currentUser.email}
                 </Text>
               )}
             </Flex>
@@ -122,7 +122,7 @@ const Sidebar = () => {
               p={2}
               maxW="180px"
             >
-              Logged in as: {currentUser.email}
+              Вы вошли как: {currentUser.email}
             </Text>
           )}
         </Flex>

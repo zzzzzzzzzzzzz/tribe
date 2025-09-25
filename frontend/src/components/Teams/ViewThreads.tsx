@@ -45,7 +45,7 @@ const ChatHistory = ({ teamId, updateTabIndex }: ChatHistoryProps) => {
   const deleteThreadMutation = useMutation(deleteThread, {
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Unable to delete thread.", `${errDetail}`, "error")
+      showToast("Не удалось удалить диалог.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries(["threads", teamId])
@@ -71,7 +71,7 @@ const ChatHistory = ({ teamId, updateTabIndex }: ChatHistoryProps) => {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так.", `${errDetail}`, "error")
   }
 
   return (
@@ -87,10 +87,10 @@ const ChatHistory = ({ teamId, updateTabIndex }: ChatHistoryProps) => {
               <Table size={{ base: "sm", md: "md" }}>
                 <Thead>
                   <Tr>
-                    <Th>Start Time</Th>
-                    <Th>Recent Query</Th>
-                    <Th>Thread ID</Th>
-                    <Th>Actions</Th>
+                    <Th>Время начала</Th>
+                    <Th>Последний запрос</Th>
+                    <Th>ID диалога</Th>
+                    <Th>Действия</Th>
                   </Tr>
                 </Thead>
                 <Tbody width={"2rem"}>

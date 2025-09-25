@@ -38,7 +38,7 @@ function Admin() {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так", `${errDetail}`, "error")
   }
 
   return (
@@ -56,18 +56,18 @@ function Admin() {
               textAlign={{ base: "center", md: "left" }}
               pt={12}
             >
-              User Management
+              Управление пользователями
             </Heading>
             <Navbar type={"User"} />
             <TableContainer>
               <Table fontSize="md" size={{ base: "sm", md: "md" }}>
                 <Thead>
                   <Tr>
-                    <Th>Full name</Th>
+                    <Th>Полное имя</Th>
                     <Th>Email</Th>
-                    <Th>Role</Th>
-                    <Th>Status</Th>
-                    <Th>Actions</Th>
+                    <Th>Роль</Th>
+                    <Th>Статус</Th>
+                    <Th>Действия</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -82,7 +82,7 @@ function Admin() {
                         )}
                       </Td>
                       <Td>{user.email}</Td>
-                      <Td>{user.is_superuser ? "Superuser" : "User"}</Td>
+                      <Td>{user.is_superuser ? "Суперпользователь" : "Пользователь"}</Td>
                       <Td>
                         <Flex gap={2}>
                           <Box
@@ -92,7 +92,7 @@ function Admin() {
                             bg={user.is_active ? "ui.success" : "ui.danger"}
                             alignSelf="center"
                           />
-                          {user.is_active ? "Active" : "Inactive"}
+                          {user.is_active ? "Активный" : "Неактивный"}
                         </Flex>
                       </Td>
                       <Td>

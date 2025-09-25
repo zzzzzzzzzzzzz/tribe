@@ -56,11 +56,11 @@ const UserInformation = () => {
 
   const mutation = useMutation(updateInfo, {
     onSuccess: () => {
-      showToast("Success!", "User updated successfully.", "success")
+      showToast("Успех!", "Данные пользователя успешно обновлены.", "success")
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("users")
@@ -81,12 +81,12 @@ const UserInformation = () => {
     <>
       <Container maxW="full" as="form" onSubmit={handleSubmit(onSubmit)}>
         <Heading size="sm" py={4}>
-          User Information
+          Информация о пользователе
         </Heading>
         <Box w={{ sm: "full", md: "50%" }}>
           <FormControl>
             <FormLabel color={color} htmlFor="name">
-              Full name
+              Полное имя
             </FormLabel>
             {editMode ? (
               <Input
@@ -113,7 +113,7 @@ const UserInformation = () => {
               <Input
                 id="email"
                 {...register("email", {
-                  required: "Email is required",
+                  required: "Email обязателен",
                   pattern: emailPattern,
                 })}
                 type="email"
@@ -136,11 +136,11 @@ const UserInformation = () => {
               isLoading={editMode ? isSubmitting : false}
               isDisabled={editMode ? !isDirty || !getValues("email") : false}
             >
-              {editMode ? "Save" : "Edit"}
+              {editMode ? "Сохранить" : "Редактировать"}
             </Button>
             {editMode && (
               <Button onClick={onCancel} isDisabled={isSubmitting}>
-                Cancel
+                Отмена
               </Button>
             )}
           </Flex>

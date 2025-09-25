@@ -107,7 +107,7 @@ class UsersOut(SQLModel):
 
 
 class TeamBase(SQLModel):
-    name: str = PydanticField(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
+    name: str = PydanticField(pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$")
     description: str | None = None
 
 
@@ -116,7 +116,9 @@ class TeamCreate(TeamBase):
 
 
 class TeamUpdate(TeamBase):
-    name: str | None = PydanticField(pattern=r"^[a-zA-Z0-9_-]{1,64}$", default=None)  # type: ignore[assignment]
+    name: str | None = PydanticField(
+        pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$", default=None
+    )  # type: ignore[assignment]
 
 
 class ChatMessageType(str, Enum):
@@ -159,7 +161,7 @@ class TeamChatPublic(BaseModel):
 
 class Team(TeamBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(regex=r"^[a-zA-Z0-9_-]{1,64}$", unique=True)
+    name: str = Field(regex=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$", unique=True)
     owner_id: int | None = Field(default=None, foreign_key="user.id", nullable=False)
     owner: User | None = Relationship(back_populates="teams")
     members: list["Member"] = Relationship(
@@ -266,7 +268,7 @@ class MemberUploadsLink(SQLModel, table=True):
 
 
 class MemberBase(SQLModel):
-    name: str = PydanticField(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
+    name: str = PydanticField(pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$")
     backstory: str | None = None
     role: str
     type: str  # one of: leader, worker, freelancer
@@ -286,7 +288,9 @@ class MemberCreate(MemberBase):
 
 
 class MemberUpdate(MemberBase):
-    name: str | None = PydanticField(pattern=r"^[a-zA-Z0-9_-]{1,64}$", default=None)  # type: ignore[assignment]
+    name: str | None = PydanticField(
+        pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$", default=None
+    )  # type: ignore[assignment]
     backstory: str | None = None
     role: str | None = None  # type: ignore[assignment]
     type: str | None = None  # type: ignore[assignment]

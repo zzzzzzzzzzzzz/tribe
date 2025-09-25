@@ -95,17 +95,17 @@ const EditUpload = ({ upload, isOpen, onClose }: EditUploadProps) => {
       >
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader>Edit Upload</ModalHeader>
+          <ModalHeader>Редактирование загрузки</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <FormControl isInvalid={!!errors.name}>
-              <FormLabel htmlFor="name">Name</FormLabel>
+                      <FormControl isRequired isInvalid={!!errors.name}>
+              <FormLabel htmlFor="name">Название</FormLabel>
               <Input
                 id="name"
                 {...register("name", {
                   pattern: {
                     value: /^[a-zA-Z0-9_-]{1,64}$/,
-                    message: "Name must follow pattern: ^[a-zA-Z0-9_-]{1,64}$",
+                    message: "Название должно соответствовать шаблону: ^[a-zA-Z0-9_-]{1,64}$",
                   },
                 })}
                 type="text"
@@ -115,7 +115,7 @@ const EditUpload = ({ upload, isOpen, onClose }: EditUploadProps) => {
               )}
             </FormControl>
             <FormControl isInvalid={!!errors.description} mt={4}>
-              <FormLabel htmlFor="description">Description</FormLabel>
+              <FormLabel htmlFor="description">Описание</FormLabel>
               <Input
                 id="description"
                 {...register("description")}
@@ -126,10 +126,10 @@ const EditUpload = ({ upload, isOpen, onClose }: EditUploadProps) => {
             <FileUpload
               name="file"
               acceptedFileTypes="application/pdf"
-              placeholder="Your file"
+              placeholder="Ваш файл"
               control={control}
             >
-              Upload File
+              Загрузить файл
             </FileUpload>
             <Controller
               control={control}
@@ -144,7 +144,7 @@ const EditUpload = ({ upload, isOpen, onClose }: EditUploadProps) => {
                   isRequired={isUpdatingFile}
                   isInvalid={!!error}
                 >
-                  <FormLabel htmlFor="temperature">Chunk Size</FormLabel>
+                  <FormLabel htmlFor="temperature">Размер чанка</FormLabel>
                   <NumberInput
                     id="chunk_size"
                     isDisabled={!isUpdatingFile}
@@ -178,7 +178,7 @@ const EditUpload = ({ upload, isOpen, onClose }: EditUploadProps) => {
                   isRequired={isUpdatingFile}
                   isInvalid={!!error}
                 >
-                  <FormLabel htmlFor="temperature">Chunk Overlap</FormLabel>
+                  <FormLabel htmlFor="temperature">Перекрытие чанков</FormLabel>
                   <NumberInput
                     id="chunk_overlap"
                     isDisabled={!isUpdatingFile}

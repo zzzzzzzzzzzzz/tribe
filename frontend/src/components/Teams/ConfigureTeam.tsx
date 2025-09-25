@@ -48,13 +48,13 @@ export const ConfigureTeam = ({ teamId }: ConfigureTeamProps) => {
   const deleteApiKeyMutation = useMutation(deleteApiKey, {
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Unable to delete thread.", `${errDetail}`, "error")
+      showToast("Не удалось удалить API ключ.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries("apikeys")
     },
     onSuccess: () => {
-      showToast("Success!", "API key deleted successfully.", "success")
+      showToast("Успешно!", "API ключ успешно удален.", "success")
     },
   })
 
@@ -68,29 +68,29 @@ export const ConfigureTeam = ({ teamId }: ConfigureTeamProps) => {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так.", `${errDetail}`, "error")
   }
 
   return (
     <VStack spacing={"1rem"} alignItems={"flex-start"}>
-      <Heading size="lg">API keys</Heading>
+      <Heading size="lg">API ключи</Heading>
       <Text>
-        API keys are used for authentication when interacting with your teams
-        through HTTP request. Learn how to make requests from the{" "}
+        API ключи используются для аутентификации при взаимодействии с вашими командами
+        через HTTP запросы. Узнайте, как делать запросы из{" "}
         {
           <Link
             href="/redoc#tag/teams/operation/teams-public_stream"
             isExternal
             color="ui.main"
           >
-            API docs
+            API документации
           </Link>
         }
         .
       </Text>
 
       <Button leftIcon={<MdOutlineVpnKey />} onClick={addApiKeyModal.onOpen}>
-        Create API Key
+        Создать API ключ
       </Button>
       <AddApiKey
         teamId={teamId}
@@ -98,17 +98,17 @@ export const ConfigureTeam = ({ teamId }: ConfigureTeamProps) => {
         onClose={addApiKeyModal.onClose}
       />
       <Text>
-        You can only access an API key when you first create it. If you lost
-        one, you will need to create a new one. Your API keys are listed below.
+        Вы можете получить доступ к API ключу только при его создании. Если вы
+        потеряли ключ, вам нужно будет создать новый. Ваши API ключи перечислены ниже.
       </Text>
       <TableContainer width="100%">
         <Table>
           <Thead>
             <Tr>
-              <Th>Description</Th>
-              <Th>API Key</Th>
-              <Th>Created</Th>
-              <Th>Actions</Th>
+              <Th>Описание</Th>
+              <Th>API ключ</Th>
+              <Th>Создан</Th>
+              <Th>Действия</Th>
             </Tr>
           </Thead>
           <Tbody>

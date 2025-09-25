@@ -39,12 +39,12 @@ const ChangePassword = () => {
 
   const mutation = useMutation(UpdatePassword, {
     onSuccess: () => {
-      showToast("Success!", "Password updated.", "success")
+      showToast("Успех!", "Пароль успешно обновлен.", "success")
       reset()
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
   })
 
@@ -56,17 +56,19 @@ const ChangePassword = () => {
     <>
       <Container maxW="full" as="form" onSubmit={handleSubmit(onSubmit)}>
         <Heading size="sm" py={4}>
-          Change Password
+          Изменить пароль
         </Heading>
         <Box w={{ sm: "full", md: "50%" }}>
           <FormControl isRequired isInvalid={!!errors.current_password}>
-            <FormLabel color={color} htmlFor="current_password">
-              Current password
+                        <FormLabel color={color} htmlFor="current_password">
+              Текущий пароль
             </FormLabel>
             <Input
               id="current_password"
-              {...register("current_password")}
-              placeholder="Password"
+              {...register("current_password", {
+                required: "Текущий пароль обязателен",
+                minLength: 8,
+              })}
               type="password"
             />
             {errors.current_password && (
@@ -75,18 +77,20 @@ const ChangePassword = () => {
               </FormErrorMessage>
             )}
           </FormControl>
-          <FormControl mt={4} isRequired isInvalid={!!errors.new_password}>
-            <FormLabel htmlFor="password">Set Password</FormLabel>
+          <FormControl isInvalid={!!errors.new_password} mt={4}>
+            <FormLabel color={color} htmlFor="new_password">
+              Новый пароль
+            </FormLabel>
             <Input
-              id="password"
+              id="new_password"
               {...register("new_password", {
-                required: "Password is required",
+                required: "Пароль обязателен",
                 minLength: {
                   value: 8,
-                  message: "Password must be at least 8 characters",
+                  message: "Пароль должен быть не менее 8 символов",
                 },
               })}
-              placeholder="Password"
+              placeholder="Пароль"
               type="password"
             />
             {errors.new_password && (
@@ -94,16 +98,16 @@ const ChangePassword = () => {
             )}
           </FormControl>
           <FormControl mt={4} isRequired isInvalid={!!errors.confirm_password}>
-            <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+            <FormLabel htmlFor="confirm_password">Подтвердите пароль</FormLabel>
             <Input
               id="confirm_password"
               {...register("confirm_password", {
-                required: "Please confirm your password",
+                required: "Пожалуйста, подтвердите пароль",
                 validate: (value) =>
                   value === getValues().new_password ||
-                  "The passwords do not match",
+                  "Пароли не совпадают",
               })}
-              placeholder="Password"
+              placeholder="Пароль"
               type="password"
             />
             {errors.confirm_password && (
@@ -118,7 +122,7 @@ const ChangePassword = () => {
             type="submit"
             isLoading={isSubmitting}
           >
-            Save
+            Сохранить
           </Button>
         </Box>
       </Container>

@@ -34,7 +34,7 @@ function Skills() {
 
   if (isError) {
     const errDetail = (error as ApiError).body?.detail
-    showToast("Something went wrong.", `${errDetail}`, "error")
+    showToast("Что-то пошло не так", `${errDetail}`, "error")
   }
 
   return (
@@ -52,16 +52,16 @@ function Skills() {
               textAlign={{ base: "center", md: "left" }}
               pt={12}
             >
-              Skills Management
+              Менеджер навыков
             </Heading>
             <Navbar type={"Skill"} />
             <TableContainer>
               <Table size={{ base: "sm", md: "md" }}>
                 <Thead>
                   <Tr>
-                    <Th>Name</Th>
-                    <Th>Description</Th>
-                    <Th>Actions</Th>
+                    <Th>Имя</Th>
+                    <Th>Описание</Th>
+                    <Th>Действия</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -89,7 +89,7 @@ function Skills() {
                         {!skill.managed ? (
                           <ActionsMenu type={"Skill"} value={skill} />
                         ) : (
-                          "Managed"
+                          "Системный навык"
                         )}
                       </Td>
                     </Tr>

@@ -154,7 +154,7 @@ const MessageBox = ({ message, onResume }: MessageBoxProps) => {
             <InputGroup size="md" width={"20rem"}>
               <Input
                 pr="3rem"
-                placeholder="Your reply..."
+                placeholder="Ваш ответ..."
                 onChange={(e) => setToolMessage(e.target.value)}
               />
               <InputRightElement>
@@ -179,18 +179,18 @@ const MessageBox = ({ message, onResume }: MessageBoxProps) => {
                 colorScheme="green"
                 onClick={() => onDecisionHandler("approved")}
               >
-                Approve
+                Одобрить
               </Button>
             </Tooltip>
-            or
+            или
             <InputGroup size="md" width={"20rem"}>
               <Input
                 pr="3rem"
-                placeholder="Optional rejection instructions..."
+                placeholder="Необязательные инструкции для отказа..."
                 onChange={(e) => setToolMessage(e.target.value)}
               />
               <InputRightElement width="3rem">
-                <Tooltip label="Reject">
+                <Tooltip label="Отклонить">
                   <IconButton
                     variant={"outline"}
                     h="1.75rem"
@@ -250,7 +250,7 @@ const ChatTeam = () => {
       refetchOnWindowFocus: false,
       onError: (err: ApiError) => {
         const errDetail = err.body?.detail
-        showToast("Something went wrong.", `${errDetail}`, "error")
+        showToast("Что-то пошло не так.", `${errDetail}`, "error")
         // if fail, then remove it from search params and delete existing messages
         navigate({ search: {} })
         setMessages([])
@@ -281,7 +281,7 @@ const ChatTeam = () => {
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Unable to create thread", `${errDetail}`, "error")
+      showToast("Не удалось создать диалог", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries(["threads", teamId])
@@ -300,7 +300,7 @@ const ChatTeam = () => {
   const updateThreadMutation = useMutation(updateThread, {
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Unable to update thread.", `${errDetail}`, "error")
+      showToast("Не удалось обновить диалог.", `${errDetail}`, "error")
     },
     onSettled: () => {
       queryClient.invalidateQueries(["threads", teamId])
@@ -402,10 +402,10 @@ const ChatTeam = () => {
     },
     onError: (err: ApiError) => {
       const errDetail = err.body?.detail
-      showToast("Something went wrong.", `${errDetail}`, "error")
+      showToast("Что-то пошло не так.", `${errDetail}`, "error")
     },
     onSuccess: () => {
-      showToast("Streaming completed", "", "success")
+      showToast("Поток завершен", "", "success")
     },
     onSettled: () => {
       setIsStreaming(false)
@@ -446,7 +446,7 @@ const ChatTeam = () => {
       <InputGroup as="form" onSubmit={onSubmit}>
         <Input
           type="text"
-          placeholder="Ask your team a question"
+          placeholder="Задайте вопрос вашей команде"
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
@@ -477,7 +477,7 @@ const ChatTeam = () => {
         margin={8}
         onClick={newChatHandler}
       >
-        New Chat
+        Новый чат
       </Button>
     </Box>
   )
