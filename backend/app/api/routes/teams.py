@@ -104,8 +104,6 @@ def create_team(
     Create new team and it's team leader
     """
     team = Team.model_validate(team_in, update={"owner_id": current_user.id})
-    if team.workflow not in ["hierarchical", "sequential"]:
-        raise HTTPException(status_code=400, detail="Invalid workflow")
     session.add(team)
     session.commit()
 

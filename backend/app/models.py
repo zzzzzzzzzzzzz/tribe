@@ -112,7 +112,7 @@ class TeamBase(SQLModel):
 
 
 class TeamCreate(TeamBase):
-    workflow: str
+    workflow: str = PydanticField(pattern=r"^(hierarchical|sequential)$")
 
 
 class TeamUpdate(TeamBase):
@@ -167,7 +167,7 @@ class Team(TeamBase, table=True):
     members: list["Member"] = Relationship(
         back_populates="belongs", sa_relationship_kwargs={"cascade": "delete"}
     )
-    workflow: str  # TODO: This should be an enum 'sequential' and 'hierarchical'
+    workflow: str = Field(regex=r"^(hierarchical|sequential)$")
     threads: list["Thread"] = Relationship(
         back_populates="team", sa_relationship_kwargs={"cascade": "delete"}
     )
@@ -180,7 +180,7 @@ class Team(TeamBase, table=True):
 class TeamOut(TeamBase):
     id: int
     owner_id: int
-    workflow: str
+    workflow: str = PydanticField(pattern=r"^(hierarchical|sequential)$")
 
 
 class TeamsOut(SQLModel):

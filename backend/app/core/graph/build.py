@@ -240,15 +240,13 @@ def exit_chain(state: TeamState) -> dict[str, list[AnyMessage]]:
 def should_continue(state: TeamState) -> str:
     """Determine if graph should go to tool node or not. For tool calling agents."""
     messages: list[AnyMessage] = state["messages"]
-    if messages and isinstance(messages[-1], AIMessage) and messages[-1].tool_calls:
-        # TODO: what if multiple tool_calls?
-        for tool_call in messages[-1].tool_calls:
-            if tool_call["name"] == "AskHuman":
-                return "call_human"
-        else:
-            return "call_tools"
-    else:
+    if not messages or not isinstance(messages[-1], AIMessage) or not messages[-1].tool_calls:
         return "continue"
+
+    if any(tool_call["name"] == "AskHuman" for tool_call in messages[-1].tool_calls):
+        return "call_human"
+
+    return "call_tools"
 
 
 def create_tools_condition(
@@ -269,11 +267,13 @@ def create_tools_condition(
         "continue": next_member_name,
     }
 
-    for tool in tools:
-        if tool.name == "ask-human":
-            mapping["call_human"] = f"{current_member_name}_askHuman_tool"
-        else:
-            mapping["call_tools"] = f"{current_member_name}_tools"
+    has_ask_human_tool = any(tool.name == "ask-human" for tool in tools)
+    has_standard_tools = any(tool.name != "ask-human" for tool in tools)
+
+    if has_ask_human_tool:
+        mapping["call_human"] = f"{current_member_name}_askHuman_tool"
+    if has_standard_tools:
+        mapping["call_tools"] = f"{current_member_name}_tools"
     return mapping
 
 
