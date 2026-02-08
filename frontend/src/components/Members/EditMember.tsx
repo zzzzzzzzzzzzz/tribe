@@ -21,25 +21,25 @@ import {
   Textarea,
   Tooltip,
 } from "@chakra-ui/react"
-import useCustomToast from "../../hooks/useCustomToast"
+import {
+  CreatableSelect,
+  Select as MultiSelect,
+  type OptionBase,
+  chakraComponents,
+} from "chakra-react-select"
+import { useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 import {
   type ApiError,
-  MembersService,
-  type TeamUpdate,
   type MemberOut,
   type MemberUpdate,
+  MembersService,
   SkillsService,
+  type TeamUpdate,
   UploadsService,
 } from "../../client"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
-import {
-  Select as MultiSelect,
-  chakraComponents,
-  CreatableSelect,
-  type OptionBase,
-} from "chakra-react-select"
-import { useState } from "react"
+import useCustomToast from "../../hooks/useCustomToast"
 
 interface EditMemberProps {
   member: MemberOut
@@ -53,12 +53,17 @@ interface ModelOption extends OptionBase {
   value: string
 }
 
-type MemberTypes = "root" | "leader" | "worker" | "freelancer" | "freelancer_root"
+type MemberTypes =
+  | "root"
+  | "leader"
+  | "worker"
+  | "freelancer"
+  | "freelancer_root"
 
 interface MemberConfigs {
-  selection: MemberTypes[],
-  enableTools: boolean,
-  enableInterrupt: boolean,
+  selection: MemberTypes[]
+  enableTools: boolean
+  enableInterrupt: boolean
   enableHumanTool: boolean
 }
 
@@ -72,11 +77,18 @@ const customSelectOption = {
 
 // TODO: Place this somewhere else.
 const AVAILABLE_MODELS = {
-  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
+  openai: [
+    "gpt-5.2",
+    "gpt-5.1",
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-4-turbo",
+    "gpt-3.5-turbo",
+  ],
   gigachat: ["GigaChat", "GigaChat-Plus", "GigaChat-Pro", "GigaChat-Max"],
 }
 
-const ALLOWED_MEMBER_CONFIGS:  Record<MemberTypes, MemberConfigs> = {
+const ALLOWED_MEMBER_CONFIGS: Record<MemberTypes, MemberConfigs> = {
   root: {
     selection: ["root"],
     enableTools: false,
@@ -199,18 +211,20 @@ export function EditMember({
     onClose()
   }
 
-  const memberConfig = ALLOWED_MEMBER_CONFIGS[ watch("type") as MemberTypes]
+  const memberConfig = ALLOWED_MEMBER_CONFIGS[watch("type") as MemberTypes]
 
   const skillOptions = skills
-  ? skills.data
-      // Remove 'ask-human' tool if 'enableHumanTool' is false
-      .filter((skill) => skill.name !== "ask-human" || memberConfig.enableHumanTool)
-      .map((skill) => ({
-        ...skill,
-        label: skill.name,
-        value: skill.id,
-      }))
-  : []
+    ? skills.data
+        // Remove 'ask-human' tool if 'enableHumanTool' is false
+        .filter(
+          (skill) => skill.name !== "ask-human" || memberConfig.enableHumanTool,
+        )
+        .map((skill) => ({
+          ...skill,
+          label: skill.name,
+          value: skill.id,
+        }))
+    : []
 
   const uploadOptions = uploads
     ? uploads.data.map((upload) => ({
@@ -221,12 +235,12 @@ export function EditMember({
     : []
 
   const modelProvider = watch("provider") as ModelProvider
-  const modelOptions: ModelOption[] = (AVAILABLE_MODELS[modelProvider] ?? []).map(
-    (model) => ({
-      label: model,
-      value: model,
-    }),
-  )
+  const modelOptions: ModelOption[] = (
+    AVAILABLE_MODELS[modelProvider] ?? []
+  ).map((model) => ({
+    label: model,
+    value: model,
+  }))
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -242,7 +256,11 @@ export function EditMember({
             >
               <FormLabel htmlFor="type">Тип</FormLabel>
               <Select id="type" {...register("type")}>
-                {memberConfig.selection.map((member, index) => (<option key={index} value={member}>{member}</option>))}
+                {memberConfig.selection.map((member, index) => (
+                  <option key={index} value={member}>
+                    {member}
+                  </option>
+                ))}
               </Select>
             </FormControl>
             <FormControl mt={4} isRequired isInvalid={!!errors.name}>
@@ -253,7 +271,8 @@ export function EditMember({
                   required: "Имя обязательно для заполнения.",
                   pattern: {
                     value: /^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$/,
-                    message: "Имя может содержать буквы (латиница и кириллица), цифры, пробелы, подчеркивания и дефисы. Максимальная длина: 64 символа.",
+                    message:
+                      "Имя может содержать буквы (латиница и кириллица), цифры, пробелы, подчеркивания и дефисы. Максимальная длина: 64 символа.",
                   },
                 })}
                 placeholder="Имя"
@@ -267,7 +286,9 @@ export function EditMember({
               <FormLabel htmlFor="role">Роль</FormLabel>
               <Textarea
                 id="role"
-                {...register("role", { required: "Роль обязательна для заполнения." })}
+                {...register("role", {
+                  required: "Роль обязательна для заполнения.",
+                })}
                 placeholder="Роль"
                 className="nodrag nopan"
               />
@@ -386,13 +407,14 @@ export function EditMember({
                       useBasicStyles
                     />
                     <FormHelperText>
-                      Если модель отсутствует в списке, вы можете ввести её вручную.
+                      Если модель отсутствует в списке, вы можете ввести её
+                      вручную.
                     </FormHelperText>
                   </FormControl>
                 )
               }}
             />
-            {(modelProvider === "openai") && (
+            {modelProvider === "openai" && (
               <FormControl mt={4} isInvalid={!!errors.base_url}>
                 <FormLabel htmlFor="model">Прокси провайдер</FormLabel>
                 <Input
