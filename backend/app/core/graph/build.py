@@ -240,7 +240,11 @@ def exit_chain(state: TeamState) -> dict[str, list[AnyMessage]]:
 def should_continue(state: TeamState) -> str:
     """Determine if graph should go to tool node or not. For tool calling agents."""
     messages: list[AnyMessage] = state["messages"]
-    if not messages or not isinstance(messages[-1], AIMessage) or not messages[-1].tool_calls:
+    if (
+        not messages
+        or not isinstance(messages[-1], AIMessage)
+        or not messages[-1].tool_calls
+    ):
         return "continue"
 
     if any(tool_call["name"] == "AskHuman" for tool_call in messages[-1].tool_calls):
