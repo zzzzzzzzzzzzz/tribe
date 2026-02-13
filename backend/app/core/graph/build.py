@@ -39,8 +39,6 @@ from app.core.graph.messages import ChatResponse, event_to_response
 from app.models import ChatMessage, Interrupt, InterruptDecision, Member, Team
 
 
-
-
 def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
     if isinstance(message.content, str):
         return HumanMessage(content=message.content, name="user")
