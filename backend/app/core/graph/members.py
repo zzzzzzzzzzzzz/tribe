@@ -176,6 +176,7 @@ class BaseNode:
                 model=model,
                 temperature=temperature,
                 base_url=base_url if base_url else None,
+                auto_upload_images=True,
             )
         else:
             self.model = init_chat_model(

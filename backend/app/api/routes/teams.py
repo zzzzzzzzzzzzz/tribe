@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
@@ -13,6 +14,9 @@ from app.api.deps import (
 )
 from app.core.graph.build import generator
 from app.models import (
+    ChatContentFilePart,
+    ChatContentImagePart,
+    ChatContentTextPart,
     Member,
     Message,
     Team,
@@ -46,6 +50,24 @@ async def validate_name_on_update(
     team = session.exec(statement).first()
     if team:
         raise HTTPException(status_code=400, detail="Team name already exists")
+
+
+def _extract_text_content(
+    content: str
+    | Sequence[ChatContentTextPart | ChatContentImagePart | ChatContentFilePart],
+) -> str:
+    if isinstance(content, str):
+        return content
+    text_parts: list[str] = []
+    for part in content:
+        if not hasattr(part, "model_dump"):
+            continue
+        dumped = part.model_dump()
+        if dumped.get("type") == "text":
+            text = dumped.get("text")
+            if isinstance(text, str):
+                text_parts.append(text)
+    return "\n".join(text_parts)
 
 
 @router.get("/", response_model=TeamsOut)
@@ -251,7 +273,9 @@ async def public_stream(
     """
     # Check if thread belongs to the team
     thread = session.get(Thread, thread_id)
-    message_content = team_chat.message.content if team_chat.message else ""
+    message_content = (
+        _extract_text_content(team_chat.message.content) if team_chat.message else ""
+    )
     if not thread:
         # create new thread
         thread = Thread(

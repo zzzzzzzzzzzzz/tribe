@@ -1,6 +1,6 @@
 import asyncio
 from collections import defaultdict, deque
-from collections.abc import AsyncGenerator, Hashable, Mapping
+from collections.abc import AsyncGenerator, Hashable, Mapping, Sequence
 from functools import partial
 from typing import Any, cast
 from uuid import uuid4
@@ -36,7 +36,49 @@ from app.core.graph.members import (
     WorkerNode,
 )
 from app.core.graph.messages import ChatResponse, event_to_response
-from app.models import ChatMessage, Interrupt, InterruptDecision, Member, Team
+from app.models import (
+    ChatContentFilePart,
+    ChatContentImagePart,
+    ChatContentTextPart,
+    ChatMessage,
+    Interrupt,
+    InterruptDecision,
+    Member,
+    Team,
+)
+
+MultipartChatContentPart = (
+    ChatContentTextPart | ChatContentImagePart | ChatContentFilePart
+)
+LangChainContent = str | list[str | dict[Any, Any]]
+
+
+def _chat_content_to_langchain_content(
+    content: str | Sequence[MultipartChatContentPart],
+) -> LangChainContent:
+    if isinstance(content, str):
+        return content
+    return [part.model_dump() for part in content]
+
+
+def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
+    content = _chat_content_to_langchain_content(message.content)
+    if isinstance(content, str):
+        return HumanMessage(content=content, name="user")
+
+    attachments: list[str] = []
+    for dumped in content:
+        if not isinstance(dumped, dict):
+            continue
+        if dumped.get("type") == "file":
+            file_id = dumped.get("file", {}).get("file_id")
+            if isinstance(file_id, str):
+                attachments.append(file_id)
+
+    kwargs: dict[str, Any] = {}
+    if attachments:
+        kwargs["attachments"] = attachments
+    return HumanMessage(content=content, name="user", additional_kwargs=kwargs)
 
 
 def convert_hierarchical_team_to_dict(
@@ -510,11 +552,12 @@ async def generator(
     streaming: bool = True,
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
+
     formatted_messages = [
         # Current only one message is passed - the user's query.
-        HumanMessage(content=message.content, name="user")
+        chat_message_to_human_message(message)
         if message.type == "human"
-        else AIMessage(content=message.content)
+        else AIMessage(content=_chat_content_to_langchain_content(message.content))
         for message in messages
     ]
 

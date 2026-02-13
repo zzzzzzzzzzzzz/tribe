@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -126,9 +126,36 @@ class ChatMessageType(str, Enum):
     ai = "ai"
 
 
+class ChatContentTextPart(BaseModel):
+    type: Literal["text"]
+    text: str
+
+
+class ChatContentImageData(BaseModel):
+    url: str
+
+
+class ChatContentImagePart(BaseModel):
+    type: Literal["image_url"]
+    image_url: ChatContentImageData
+
+
+class ChatContentFileData(BaseModel):
+    file_id: str | None = None
+    filename: str | None = None
+    file_data: str | None = None
+
+
+class ChatContentFilePart(BaseModel):
+    type: Literal["file"]
+    file: ChatContentFileData
+
+
 class ChatMessage(BaseModel):
     type: ChatMessageType
-    content: str
+    content: str | list[
+        ChatContentTextPart | ChatContentImagePart | ChatContentFilePart
+    ]
 
 
 class InterruptDecision(Enum):
