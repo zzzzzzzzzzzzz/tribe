@@ -39,6 +39,27 @@ from app.core.graph.messages import ChatResponse, event_to_response
 from app.models import ChatMessage, Interrupt, InterruptDecision, Member, Team
 
 
+
+
+def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
+    if isinstance(message.content, str):
+        return HumanMessage(content=message.content, name="user")
+
+    attachments: list[str] = []
+    content_parts: list[dict[str, Any]] = []
+    for part in message.content:
+        dumped = part.model_dump()
+        if dumped.get("type") == "file":
+            file_id = dumped.get("file", {}).get("file_id")
+            if isinstance(file_id, str):
+                attachments.append(file_id)
+        content_parts.append(dumped)
+
+    kwargs: dict[str, Any] = {}
+    if attachments:
+        kwargs["attachments"] = attachments
+    return HumanMessage(content=content_parts, name="user", additional_kwargs=kwargs)
+
 def convert_hierarchical_team_to_dict(
     team: Team, members: list[Member]
 ) -> dict[str, GraphTeam]:
@@ -510,9 +531,10 @@ async def generator(
     streaming: bool = True,
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
+
     formatted_messages = [
         # Current only one message is passed - the user's query.
-        HumanMessage(content=message.content, name="user")
+        chat_message_to_human_message(message)
         if message.type == "human"
         else AIMessage(content=message.content)
         for message in messages

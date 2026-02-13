@@ -14,6 +14,7 @@ import {
   IconButton,
   Input,
   InputGroup,
+  FormLabel,
   InputRightElement,
   Tag,
   Text,
@@ -37,6 +38,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query"
 import useCustomToast from "../../hooks/useCustomToast"
 import { getRouteApi, useNavigate, useParams } from "@tanstack/react-router"
 import { useState } from "react"
+import type { ChatMessage } from "../../client/models/ChatMessage"
 import {
   getQueryString,
   getRequestBody,
@@ -237,6 +239,7 @@ const ChatTeam = () => {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<ChatResponse[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
   useQuery(
     ["thread", threadId],
     () =>
@@ -362,17 +365,55 @@ const ChatTeam = () => {
     })
   }
 
+  const getTextContent = (content: ChatMessage["content"]): string => {
+    if (typeof content === "string") return content
+    return content
+      .filter((part) => part.type === "text")
+      .map((part) => (part.type === "text" ? part.text : ""))
+      .join("\n")
+  }
+
+  const toDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error("Failed to read file"))
+      reader.readAsDataURL(file)
+    })
+
+  const buildContent = async () => {
+    const content: ChatMessage["content"] = []
+    if (input.trim().length) {
+      content.push({ type: "text", text: input })
+    }
+    for (const file of files) {
+      const dataUrl = await toDataUrl(file)
+      if (file.type.startsWith("image/")) {
+        content.push({ type: "image_url", image_url: { url: dataUrl } })
+      } else {
+        content.push({
+          type: "file",
+          file: {
+            filename: file.name,
+            file_data: dataUrl,
+          },
+        })
+      }
+    }
+    return content.length === 1 && content[0].type === "text" ? content[0].text : content
+  }
+
   const chatTeam = async (data: TeamChat) => {
     // Create a new thread or update current thread with most recent user query
     const query = data.messages
     let currentThreadId: string | undefined | null = threadId
     if (!threadId) {
       currentThreadId = await createThreadMutation.mutateAsync({
-        query: query[0].content,
+        query: getTextContent(query[0].content),
       })
     } else {
       currentThreadId = await updateThreadMutation.mutateAsync({
-        query: query[0].content,
+        query: getTextContent(query[0].content),
       })
     }
 
@@ -388,7 +429,7 @@ const ChatTeam = () => {
       {
         type: "human",
         id: v4(),
-        content: data.messages[0].content,
+        content: getTextContent(data.messages[0].content),
         name: "user",
       },
     ])
@@ -414,8 +455,12 @@ const ChatTeam = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    mutation.mutate({ messages: [{ type: "human", content: input }] })
+    const content = await buildContent()
+    if (typeof content === "string" && !content.trim().length) return
+    if (Array.isArray(content) && !content.length) return
+    mutation.mutate({ messages: [{ type: "human", content }] })
     setInput("")
+    setFiles([])
   }
 
   const newChatHandler = () => {
@@ -450,16 +495,27 @@ const ChatTeam = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
+        <FormLabel htmlFor="chat-files" mb={0} ml={2} cursor="pointer" fontSize="sm">
+          Файлы
+        </FormLabel>
+        <Input
+          id="chat-files"
+          type="file"
+          multiple
+          display="none"
+          onChange={(e) => setFiles(Array.from(e.target.files || []))}
+        />
         <InputRightElement>
           <IconButton
             type="submit"
             icon={<VscSend />}
             aria-label="send-question"
             isLoading={isStreaming}
-            isDisabled={!input.trim().length}
+            isDisabled={!input.trim().length && files.length === 0}
           />
         </InputRightElement>
       </InputGroup>
+      {files.length > 0 && <Text mt={2}>Выбрано файлов: {files.length}</Text>}
       <Box p={2} overflow={"auto"} height="72vh" my={2}>
         {messages.map((message, index) => (
           <MessageBox
