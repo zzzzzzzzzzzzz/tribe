@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
@@ -13,6 +14,9 @@ from app.api.deps import (
 )
 from app.core.graph.build import generator
 from app.models import (
+    ChatContentFilePart,
+    ChatContentImagePart,
+    ChatContentTextPart,
     Member,
     Message,
     Team,
@@ -50,7 +54,9 @@ async def validate_name_on_update(
 
 
 
-def _extract_text_content(content: str | list[object]) -> str:
+def _extract_text_content(
+    content: str | Sequence[ChatContentTextPart | ChatContentImagePart | ChatContentFilePart],
+) -> str:
     if isinstance(content, str):
         return content
     text_parts: list[str] = []

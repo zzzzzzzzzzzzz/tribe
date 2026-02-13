@@ -35,22 +35,34 @@ def _set_required_env_defaults() -> None:
 
 
 def _build_openai_message() -> "ChatMessage":
-    from app.models import ChatMessage
+    from app.models import (
+        ChatContentImageData,
+        ChatContentImagePart,
+        ChatContentTextPart,
+        ChatMessage,
+        ChatMessageType,
+    )
 
     return ChatMessage(
-        type="human",
+        type=ChatMessageType.human,
         content=[
-            {"type": "text", "text": "What is shown in this image? Keep it short."},
-            {"type": "image_url", "image_url": {"url": TINY_PNG_DATA_URL}},
+            ChatContentTextPart(
+                type="text",
+                text="What is shown in this image? Keep it short.",
+            ),
+            ChatContentImagePart(
+                type="image_url",
+                image_url=ChatContentImageData(url=TINY_PNG_DATA_URL),
+            ),
         ],
     )
 
 
 def _build_gigachat_message() -> "ChatMessage":
-    from app.models import ChatMessage
+    from app.models import ChatMessage, ChatMessageType
 
     return ChatMessage(
-        type="human",
+        type=ChatMessageType.human,
         content="Ответь одним коротким предложением: что такое интеграционный тест?",
     )
 
