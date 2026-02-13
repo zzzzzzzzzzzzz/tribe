@@ -19,7 +19,9 @@ def test_extract_text_content_for_multipart_content() -> None:
             type="image_url",
             image_url=ChatContentImageData(url="data:image/png;base64,AAA"),
         ),
-        ChatContentFilePart(type="file", file=ChatContentFileData(filename="report.pdf")),
+        ChatContentFilePart(
+            type="file", file=ChatContentFileData(filename="report.pdf")
+        ),
         ChatContentTextPart(type="text", text="Line 2"),
     ]
 

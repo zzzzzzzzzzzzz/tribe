@@ -153,7 +153,9 @@ class ChatContentFilePart(BaseModel):
 
 class ChatMessage(BaseModel):
     type: ChatMessageType
-    content: str | list[ChatContentTextPart | ChatContentImagePart | ChatContentFilePart]
+    content: str | list[
+        ChatContentTextPart | ChatContentImagePart | ChatContentFilePart
+    ]
 
 
 class InterruptDecision(Enum):

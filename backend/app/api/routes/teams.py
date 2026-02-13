@@ -52,10 +52,9 @@ async def validate_name_on_update(
         raise HTTPException(status_code=400, detail="Team name already exists")
 
 
-
-
 def _extract_text_content(
-    content: str | Sequence[ChatContentTextPart | ChatContentImagePart | ChatContentFilePart],
+    content: str
+    | Sequence[ChatContentTextPart | ChatContentImagePart | ChatContentFilePart],
 ) -> str:
     if isinstance(content, str):
         return content
@@ -69,6 +68,7 @@ def _extract_text_content(
             if isinstance(text, str):
                 text_parts.append(text)
     return "\n".join(text_parts)
+
 
 @router.get("/", response_model=TeamsOut)
 def read_teams(

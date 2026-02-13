@@ -53,7 +53,9 @@ MultipartChatContentPart = (
 LangChainContent = str | list[str | dict[Any, Any]]
 
 
-def _chat_content_to_langchain_content(content: str | Sequence[MultipartChatContentPart]) -> LangChainContent:
+def _chat_content_to_langchain_content(
+    content: str | Sequence[MultipartChatContentPart],
+) -> LangChainContent:
     if isinstance(content, str):
         return content
     return [part.model_dump() for part in content]
@@ -77,6 +79,7 @@ def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
     if attachments:
         kwargs["attachments"] = attachments
     return HumanMessage(content=content, name="user", additional_kwargs=kwargs)
+
 
 def convert_hierarchical_team_to_dict(
     team: Team, members: list[Member]
