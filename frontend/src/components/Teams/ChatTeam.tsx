@@ -28,7 +28,7 @@ import { getRouteApi, useNavigate, useParams } from "@tanstack/react-router"
 import { useRef, useState } from "react"
 import { FaCheck, FaTimes } from "react-icons/fa"
 import { FaRegFileImage } from "react-icons/fa"
-import { FiCopy, FiPaperclip } from "react-icons/fi"
+import { FiCopy, FiFileText, FiPaperclip } from "react-icons/fi"
 import { GrFormNextLink } from "react-icons/gr"
 import { IoCreateOutline } from "react-icons/io5"
 import { VscSend } from "react-icons/vsc"
@@ -131,23 +131,38 @@ const MessageBox = ({ message, onResume }: MessageBoxProps) => {
       <Container pt={2}>
         {content && <Markdown content={content} />}
         {!!attachments?.length && (
-          <HStack spacing={2} mt={2} wrap="wrap">
-            {attachments.map((attachment, index) => (
-              <Tag
-                key={`${attachment.name}-${index}`}
-                size="sm"
-                colorScheme="blue"
-              >
-                <Icon
-                  as={
-                    attachment.type === "image" ? FaRegFileImage : FiPaperclip
-                  }
-                  mr={1}
-                />
-                <TagLabel>{attachment.name}</TagLabel>
-              </Tag>
-            ))}
-          </HStack>
+          <Box
+            mt={3}
+            p={3}
+            borderWidth="1px"
+            borderRadius="md"
+            borderColor="blue.200"
+            bg="blue.50"
+          >
+            <HStack spacing={2} mb={2}>
+              <Icon as={FiPaperclip} color="blue.600" />
+              <Text fontSize="sm" fontWeight="semibold" color="blue.700">
+                Вложений: {attachments.length}
+              </Text>
+            </HStack>
+            <HStack spacing={2} wrap="wrap">
+              {attachments.map((attachment, index) => (
+                <Tag
+                  key={`${attachment.name}-${index}`}
+                  size="sm"
+                  colorScheme={attachment.type === "image" ? "purple" : "blue"}
+                >
+                  <Icon
+                    as={
+                      attachment.type === "image" ? FaRegFileImage : FiFileText
+                    }
+                    mr={1}
+                  />
+                  <TagLabel>{attachment.name}</TagLabel>
+                </Tag>
+              ))}
+            </HStack>
+          </Box>
         )}
         {tool_calls?.map((tool_call, index) => (
           <Box key={index} mb={4}>
@@ -618,14 +633,40 @@ const ChatTeam = () => {
         </InputRightElement>
       </InputGroup>
       {files.length > 0 && (
-        <HStack spacing={2} mt={2} wrap="wrap">
-          {files.map((file, index) => (
-            <Tag key={`${file.name}-${index}`} size="sm" colorScheme="gray">
-              <TagLabel>{file.name}</TagLabel>
-              <TagCloseButton onClick={() => removeFile(index)} />
-            </Tag>
-          ))}
-        </HStack>
+        <Box
+          mt={2}
+          p={3}
+          borderWidth="1px"
+          borderRadius="md"
+          borderColor="gray.200"
+        >
+          <HStack spacing={2} mb={2}>
+            <Icon as={FiPaperclip} color="gray.600" />
+            <Text fontSize="sm" fontWeight="medium" color="gray.700">
+              Подготовлено вложений: {files.length}
+            </Text>
+          </HStack>
+          <HStack spacing={2} wrap="wrap">
+            {files.map((file, index) => {
+              const isImage =
+                file.type.startsWith("image/") ||
+                IMAGE_EXTENSIONS.some((extension) =>
+                  file.name.toLowerCase().endsWith(extension),
+                )
+              return (
+                <Tag
+                  key={`${file.name}-${index}`}
+                  size="sm"
+                  colorScheme={isImage ? "purple" : "gray"}
+                >
+                  <Icon as={isImage ? FaRegFileImage : FiFileText} mr={1} />
+                  <TagLabel>{file.name}</TagLabel>
+                  <TagCloseButton onClick={() => removeFile(index)} />
+                </Tag>
+              )
+            })}
+          </HStack>
+        </Box>
       )}
       <Box p={2} overflow={"auto"} height="72vh" my={2}>
         {messages.map((message, index) => (

@@ -124,7 +124,34 @@ def format_messages(messages: list[AnyMessage]) -> str:
     """Format list of messages to string"""
     message_str: str = ""
     for message in messages:
-        message_str += f"{message.name}: {message.content}\n\n"
+        content = message.content
+        if isinstance(content, list):
+            formatted_parts: list[str] = []
+            for part in content:
+                if isinstance(part, str):
+                    formatted_parts.append(part)
+                    continue
+                if not isinstance(part, Mapping):
+                    continue
+
+                part_type = part.get("type")
+                if part_type == "text":
+                    text = part.get("text")
+                    if isinstance(text, str) and text:
+                        formatted_parts.append(text)
+                elif part_type == "image_url":
+                    formatted_parts.append("[Attached image]")
+                elif part_type == "file":
+                    filename = part.get("file", {}).get("filename")
+                    if isinstance(filename, str) and filename:
+                        formatted_parts.append(f"[Attached file: {filename}]")
+                    else:
+                        formatted_parts.append("[Attached file]")
+            message_content = "\n".join(formatted_parts)
+        else:
+            message_content = str(content)
+
+        message_str += f"{message.name}: {message_content}\n\n"
     return message_str
 
 
