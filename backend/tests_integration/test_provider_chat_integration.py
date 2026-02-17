@@ -116,7 +116,9 @@ def test_gigachat_text_message_integration() -> None:
     base_url = os.getenv("GIGACHAT_BASE_URL")
 
     human_message = chat_message_to_human_message(_build_gigachat_message())
-    response = _build_node("gigachat", model_name, base_url).model.invoke([human_message])
+    response = _build_node("gigachat", model_name, base_url).model.invoke(
+        [human_message]
+    )
 
     assert isinstance(response, AIMessage)
     _assert_non_empty_ai_response(response)

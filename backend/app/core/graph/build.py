@@ -53,10 +53,24 @@ MultipartChatContentPart = (
 LangChainContent = str | list[str | dict[Any, Any]]
 
 
-def _chat_content_to_langchain_content(content: str | Sequence[MultipartChatContentPart]) -> LangChainContent:
+def _chat_content_to_langchain_content(
+    content: str | Sequence[MultipartChatContentPart],
+) -> LangChainContent:
     if isinstance(content, str):
         return content
-    return [part.model_dump() for part in content]
+
+    langchain_content: list[str | dict[Any, Any]] = []
+    for part in content:
+        if isinstance(part, ChatContentFilePart):
+            filename = part.file.filename
+            if isinstance(filename, str) and filename:
+                langchain_content.append(
+                    {"type": "text", "text": f"[Attached file: {filename}]"}
+                )
+            continue
+        langchain_content.append(part.model_dump(exclude_none=True))
+
+    return langchain_content
 
 
 def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
@@ -65,18 +79,19 @@ def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
         return HumanMessage(content=content, name="user")
 
     attachments: list[str] = []
-    for dumped in content:
-        if not isinstance(dumped, dict):
-            continue
-        if dumped.get("type") == "file":
-            file_id = dumped.get("file", {}).get("file_id")
-            if isinstance(file_id, str):
+    if isinstance(message.content, Sequence) and not isinstance(message.content, str):
+        for part in message.content:
+            if not isinstance(part, ChatContentFilePart):
+                continue
+            file_id = part.file.file_id
+            if isinstance(file_id, str) and file_id:
                 attachments.append(file_id)
 
     kwargs: dict[str, Any] = {}
     if attachments:
         kwargs["attachments"] = attachments
     return HumanMessage(content=content, name="user", additional_kwargs=kwargs)
+
 
 def convert_hierarchical_team_to_dict(
     team: Team, members: list[Member]
