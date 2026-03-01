@@ -30,7 +30,7 @@ import { FaCheck, FaTimes } from "react-icons/fa"
 import { FaRegFileImage } from "react-icons/fa"
 import { FiCopy, FiFileText, FiPaperclip } from "react-icons/fi"
 import { GrFormNextLink } from "react-icons/gr"
-import { IoCreateOutline } from "react-icons/io5"
+import { IoAttachSharp, IoCreateOutline } from "react-icons/io5"
 import { VscSend } from "react-icons/vsc"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 import { v4 } from "uuid"
@@ -68,6 +68,9 @@ const IMAGE_EXTENSIONS = [
   ".heic",
   ".heif",
 ]
+
+const MAX_ATTACHMENTS = 10
+const MAX_ATTACHMENT_SIZE_BYTES = 20 * 1024 * 1024
 
 const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
   const encoder = config.ENCODE_PATH || encodeURI
@@ -568,7 +571,31 @@ const ChatTeam = () => {
     const selectedFiles = Array.from(e.target.files || [])
     if (!selectedFiles.length) return
 
-    setFiles((prev) => [...prev, ...selectedFiles])
+    setFiles((prev) => {
+      const nextFiles = [...prev]
+      for (const file of selectedFiles) {
+        if (nextFiles.length >= MAX_ATTACHMENTS) {
+          showToast(
+            "Лимит вложений достигнут",
+            `Можно прикрепить не более ${MAX_ATTACHMENTS} файлов к одному сообщению.`,
+            "error",
+          )
+          break
+        }
+
+        if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+          showToast(
+            "Файл слишком большой",
+            `Файл \"${file.name}\" превышает лимит 20MB и был пропущен.`,
+            "error",
+          )
+          continue
+        }
+
+        nextFiles.push(file)
+      }
+      return nextFiles
+    })
     e.target.value = ""
   }
 
@@ -610,7 +637,8 @@ const ChatTeam = () => {
           ml={2}
           size="sm"
           variant="outline"
-          leftIcon={<FiPaperclip />}
+          leftIcon={<IoAttachSharp />}
+          isDisabled={files.length >= MAX_ATTACHMENTS}
         >
           Файлы
         </Button>
@@ -620,6 +648,7 @@ const ChatTeam = () => {
           type="file"
           multiple
           display="none"
+          disabled={files.length >= MAX_ATTACHMENTS}
           onChange={handleFilesSelect}
         />
         <InputRightElement>
@@ -643,7 +672,7 @@ const ChatTeam = () => {
           <HStack spacing={2} mb={2}>
             <Icon as={FiPaperclip} color="gray.600" />
             <Text fontSize="sm" fontWeight="medium" color="gray.700">
-              Подготовлено вложений: {files.length}
+              Подготовлено вложений: {files.length}/{MAX_ATTACHMENTS}
             </Text>
           </HStack>
           <HStack spacing={2} wrap="wrap">

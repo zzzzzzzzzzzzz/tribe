@@ -36,14 +36,39 @@ def convert_checkpoint_tuple_to_messages(
             isinstance(message, HumanMessage)
             and message.id
             and message.name
-            and isinstance(message.content, str)
         ):
+            human_content: str
+            if isinstance(message.content, str):
+                human_content = message.content
+            elif isinstance(message.content, list):
+                content_parts: list[str] = []
+                for part in message.content:
+                    if isinstance(part, str):
+                        content_parts.append(part)
+                    elif isinstance(part, dict):
+                        part_type = part.get("type")
+                        if part_type == "text":
+                            text = part.get("text")
+                            if isinstance(text, str) and text:
+                                content_parts.append(text)
+                        elif part_type == "image_url":
+                            content_parts.append("[Attached image]")
+                        elif part_type == "file":
+                            file_name = part.get("file", {}).get("filename")
+                            if isinstance(file_name, str) and file_name:
+                                content_parts.append(f"[Attached file: {file_name}]")
+                            else:
+                                content_parts.append("[Attached file]")
+                human_content = "\n".join(content_parts)
+            else:
+                human_content = str(message.content)
+
             formatted_messages.append(
                 ChatResponse(
                     type="human",
                     id=message.id,
                     name=message.name,
-                    content=message.content,
+                    content=human_content,
                 )
             )
         elif (

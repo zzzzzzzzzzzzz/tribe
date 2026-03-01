@@ -1,4 +1,6 @@
+import base64
 import asyncio
+import mimetypes
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Hashable, Mapping, Sequence
 from functools import partial
@@ -23,6 +25,7 @@ from psycopg import AsyncConnection
 from psycopg.rows import DictRow, dict_row
 
 from app.core.config import settings
+from app.core.graph.attachments import upload_attachments_for_thread
 from app.core.graph.members import (
     GraphLeader,
     GraphMember,
@@ -73,24 +76,69 @@ def _chat_content_to_langchain_content(
     return langchain_content
 
 
+def _file_data_to_text_part(file_data: str, filename: str | None) -> dict[str, str] | None:
+    if not file_data.startswith("data:"):
+        return None
+    try:
+        metadata, payload = file_data.split(",", 1)
+    except ValueError:
+        return None
+
+    if ";base64" not in metadata:
+        return None
+
+    content_type = metadata.split(":", 1)[1].split(";", 1)[0]
+    guessed_type = mimetypes.guess_type(filename or "")[0]
+    final_content_type = guessed_type or content_type
+    if final_content_type.startswith("image/"):
+        return None
+
+    try:
+        decoded = base64.b64decode(payload, validate=True)
+        text = decoded.decode("utf-8")
+    except Exception:
+        return None
+
+    title = filename or "attachment"
+    return {
+        "type": "text",
+        "text": f"[Attached file: {title}]\n{text}",
+    }
+
+
 def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
     content = _chat_content_to_langchain_content(message.content)
     if isinstance(content, str):
         return HumanMessage(content=content, name="user")
 
     attachments: list[str] = []
+    converted_content: list[str | dict[Any, Any]] = list(content)
     if isinstance(message.content, Sequence) and not isinstance(message.content, str):
         for part in message.content:
-            if not isinstance(part, ChatContentFilePart):
-                continue
-            file_id = part.file.file_id
-            if isinstance(file_id, str) and file_id:
-                attachments.append(file_id)
+            if isinstance(part, ChatContentFilePart):
+                provider_file_id = (part.file.provider_file_ids or {}).get("openai")
+                file_id = provider_file_id or part.file.file_id
+                if isinstance(file_id, str) and file_id:
+                    attachments.append(file_id)
+
+                file_text_part = _file_data_to_text_part(
+                    part.file.file_data or "", part.file.filename
+                )
+                if file_text_part:
+                    converted_content.append(file_text_part)
+            elif isinstance(part, ChatContentImagePart):
+                image_file_id = (part.image_url.provider_file_ids or {}).get("openai")
+                if isinstance(image_file_id, str) and image_file_id:
+                    attachments.append(image_file_id)
 
     kwargs: dict[str, Any] = {}
     if attachments:
         kwargs["attachments"] = attachments
-    return HumanMessage(content=content, name="user", additional_kwargs=kwargs)
+    return HumanMessage(
+        content=converted_content,
+        name="user",
+        additional_kwargs=kwargs,
+    )
 
 
 def convert_hierarchical_team_to_dict(
@@ -564,6 +612,12 @@ async def generator(
     streaming: bool = True,
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
+
+    if messages:
+        messages = [
+            upload_attachments_for_thread(message=message, members=members)
+            for message in messages
+        ]
 
     formatted_messages = [
         # Current only one message is passed - the user's query.

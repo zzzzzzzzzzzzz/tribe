@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.graph.build import chat_message_to_human_message
 from app.models import (
     ChatContentFileData,
@@ -8,6 +10,13 @@ from app.models import (
     ChatMessage,
     ChatMessageType,
 )
+
+
+def _base64_data_url(data: bytes, mime: str) -> str:
+    import base64
+
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
 
 
 def test_chat_message_to_human_message_with_string_content() -> None:
@@ -32,8 +41,8 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
                 type="file",
                 file=ChatContentFileData(
                     file_id="file-123",
-                    filename="report.pdf",
-                    file_data="data:application/pdf;base64,BBB",
+                    filename="report.txt",
+                    file_data=_base64_data_url(b"hello from attachment", "text/plain"),
                 ),
             ),
         ],
@@ -51,5 +60,59 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
     assert isinstance(content_parts, list)
     third_part = content_parts[2]
     assert isinstance(third_part, dict)
-    assert third_part == {"type": "text", "text": "[Attached file: report.pdf]"}
+    assert third_part == {"type": "text", "text": "[Attached file: report.txt]"}
+    fourth_part = content_parts[3]
+    assert isinstance(fourth_part, dict)
+    assert fourth_part == {
+        "type": "text",
+        "text": "[Attached file: report.txt]\nhello from attachment",
+    }
     assert result.additional_kwargs["attachments"] == ["file-123"]
+
+
+def test_chat_message_attachment_count_limit() -> None:
+    with pytest.raises(ValueError, match="No more than 10 attachments"):
+        ChatMessage(
+            type=ChatMessageType.human,
+            content=[
+                ChatContentFilePart(
+                    type="file",
+                    file=ChatContentFileData(filename=f"file-{index}.txt", file_data=None),
+                )
+                for index in range(11)
+            ],
+        )
+
+
+def test_chat_message_attachment_size_limit() -> None:
+    oversized_data = _base64_data_url(b"a" * (20 * 1024 * 1024 + 1), "text/plain")
+    with pytest.raises(ValueError, match="must not exceed 20MB"):
+        ChatMessage(
+            type=ChatMessageType.human,
+            content=[
+                ChatContentFilePart(
+                    type="file",
+                    file=ChatContentFileData(filename="big.txt", file_data=oversized_data),
+                )
+            ],
+        )
+
+
+def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() -> None:
+    message = ChatMessage(
+        type=ChatMessageType.human,
+        content=[
+            ChatContentTextPart(type="text", text="Look at this"),
+            ChatContentImagePart(
+                type="image_url",
+                image_url=ChatContentImageData(
+                    url="data:image/png;base64,AAA",
+                    provider_file_ids={"openai": "image-file-123"},
+                ),
+            ),
+        ],
+    )
+
+    result = chat_message_to_human_message(message)
+
+    assert result.additional_kwargs["attachments"] == ["image-file-123"]

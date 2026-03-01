@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
@@ -133,6 +134,7 @@ class ChatContentTextPart(BaseModel):
 
 class ChatContentImageData(BaseModel):
     url: str
+    provider_file_ids: dict[str, str] | None = None
 
 
 class ChatContentImagePart(BaseModel):
@@ -142,6 +144,7 @@ class ChatContentImagePart(BaseModel):
 
 class ChatContentFileData(BaseModel):
     file_id: str | None = None
+    provider_file_ids: dict[str, str] | None = None
     filename: str | None = None
     file_data: str | None = None
 
@@ -156,6 +159,44 @@ class ChatMessage(BaseModel):
     content: str | list[
         ChatContentTextPart | ChatContentImagePart | ChatContentFilePart
     ]
+
+    @staticmethod
+    def _data_url_size_bytes(data_url: str) -> int | None:
+        if not data_url.startswith("data:"):
+            return None
+        try:
+            payload = data_url.split(",", 1)[1]
+        except IndexError:
+            return None
+        try:
+            return len(base64.b64decode(payload, validate=True))
+        except Exception:
+            return None
+
+    @model_validator(mode="after")
+    def validate_attachments(self) -> "ChatMessage":
+        if isinstance(self.content, str):
+            return self
+
+        attachments = [part for part in self.content if part.type in {"file", "image_url"}]
+        if len(attachments) > 10:
+            raise ValueError("No more than 10 attachments are allowed per message")
+
+        max_size_bytes = 20 * 1024 * 1024
+        for part in self.content:
+            file_payload: str | None = None
+            if isinstance(part, ChatContentFilePart):
+                file_payload = part.file.file_data
+            if isinstance(part, ChatContentImagePart):
+                file_payload = part.image_url.url
+            if not isinstance(file_payload, str):
+                continue
+
+            file_size = self._data_url_size_bytes(file_payload)
+            if file_size is not None and file_size > max_size_bytes:
+                raise ValueError("Attachment size must not exceed 20MB")
+
+        return self
 
 
 class InterruptDecision(Enum):
