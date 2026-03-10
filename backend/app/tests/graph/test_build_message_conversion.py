@@ -120,3 +120,35 @@ def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() 
     result = chat_message_to_human_message(message)
 
     assert result.additional_kwargs["attachments"] == ["image-file-123"]
+
+
+def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -> None:
+    message = ChatMessage(
+        type=ChatMessageType.human,
+        content=[
+            ChatContentTextPart(type="text", text="Process these"),
+            ChatContentFilePart(
+                type="file",
+                file=ChatContentFileData(
+                    filename="notes.txt",
+                    file_data=_base64_data_url(b"hello", "text/plain"),
+                    provider_file_ids={"gigachat": "g-file-id"},
+                ),
+            ),
+            ChatContentImagePart(
+                type="image_url",
+                image_url=ChatContentImageData(
+                    url="data:image/png;base64,AAA",
+                    provider_file_ids={"gigachat": "g-image-id"},
+                ),
+            ),
+        ],
+    )
+
+    result = chat_message_to_human_message(message, attachment_provider="gigachat")
+
+    assert result.additional_kwargs["attachments"] == ["g-file-id", "g-image-id"]
+    assert isinstance(result.content, list)
+    image_part = result.content[2]
+    assert isinstance(image_part, dict)
+    assert image_part["image_url"]["giga_id"] == "g-image-id"

@@ -108,7 +108,11 @@ def _file_data_to_text_part(
     }
 
 
-def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
+def chat_message_to_human_message(
+    message: ChatMessage,
+    *,
+    attachment_provider: str | None = "openai",
+) -> HumanMessage:
     content = _chat_content_to_langchain_content(message.content)
     if isinstance(content, str):
         return HumanMessage(content=content, name="user")
@@ -116,9 +120,13 @@ def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
     attachments: list[str] = []
     converted_content: list[str | dict[Any, Any]] = list(content)
     if isinstance(message.content, Sequence) and not isinstance(message.content, str):
-        for part in message.content:
+        for index, part in enumerate(message.content):
             if isinstance(part, ChatContentFilePart):
-                provider_file_id = (part.file.provider_file_ids or {}).get("openai")
+                provider_file_id = (
+                    (part.file.provider_file_ids or {}).get(attachment_provider)
+                    if attachment_provider
+                    else None
+                )
                 file_id = provider_file_id or part.file.file_id
                 if isinstance(file_id, str) and file_id:
                     attachments.append(file_id)
@@ -129,9 +137,23 @@ def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
                 if file_text_part:
                     converted_content.append(file_text_part)
             elif isinstance(part, ChatContentImagePart):
-                image_file_id = (part.image_url.provider_file_ids or {}).get("openai")
+                image_provider_ids = part.image_url.provider_file_ids or {}
+                image_file_id = (
+                    image_provider_ids.get(attachment_provider)
+                    if attachment_provider
+                    else None
+                )
                 if isinstance(image_file_id, str) and image_file_id:
                     attachments.append(image_file_id)
+
+                if attachment_provider == "gigachat":
+                    image_part = converted_content[index]
+                    if (
+                        isinstance(image_part, dict)
+                        and isinstance(image_part.get("image_url"), dict)
+                        and isinstance(image_file_id, str)
+                    ):
+                        image_part["image_url"]["giga_id"] = image_file_id
 
     kwargs: dict[str, Any] = {}
     if attachments:
@@ -621,9 +643,18 @@ async def generator(
             for message in messages
         ]
 
+    attachment_provider: str | None = None
+    if members and all(member.provider == "gigachat" for member in members):
+        attachment_provider = "gigachat"
+    elif any(member.provider == "openai" for member in members):
+        attachment_provider = "openai"
+
     formatted_messages = [
         # Current only one message is passed - the user's query.
-        chat_message_to_human_message(message)
+        chat_message_to_human_message(
+            message,
+            attachment_provider=attachment_provider,
+        )
         if message.type == "human"
         else AIMessage(content=_chat_content_to_langchain_content(message.content))
         for message in messages
