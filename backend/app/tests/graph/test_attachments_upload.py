@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+from pytest import MonkeyPatch
 
 from app.core.graph.attachments import upload_attachments_for_thread
 from app.models import (
@@ -9,6 +9,7 @@ from app.models import (
     ChatContentTextPart,
     ChatMessage,
     ChatMessageType,
+    Member,
 )
 
 
@@ -34,7 +35,22 @@ def _build_message() -> ChatMessage:
     )
 
 
-def test_upload_attachments_for_thread_uploads_to_both_providers(monkeypatch) -> None:
+def _build_member(*, provider: str, base_url: str | None) -> Member:
+    return Member(
+        name=f"{provider}-member",
+        role="assistant",
+        type="worker",
+        position_x=0,
+        position_y=0,
+        provider=provider,
+        model="test-model",
+        base_url=base_url,
+    )
+
+
+def test_upload_attachments_for_thread_uploads_to_both_providers(
+    monkeypatch: MonkeyPatch,
+) -> None:
     message = _build_message()
 
     openai_calls: list[tuple[str, bytes, str | None]] = []
@@ -52,8 +68,8 @@ def test_upload_attachments_for_thread_uploads_to_both_providers(monkeypatch) ->
     monkeypatch.setattr("app.core.graph.attachments._upload_to_gigachat", fake_gigachat)
 
     members = [
-        SimpleNamespace(provider="openai", base_url="https://openai.example"),
-        SimpleNamespace(provider="gigachat", base_url="https://gigachat.example"),
+        _build_member(provider="openai", base_url="https://openai.example"),
+        _build_member(provider="gigachat", base_url="https://gigachat.example"),
     ]
 
     updated = upload_attachments_for_thread(message=message, members=members)
@@ -72,7 +88,9 @@ def test_upload_attachments_for_thread_uploads_to_both_providers(monkeypatch) ->
     }
 
 
-def test_upload_attachments_for_thread_reuses_existing_provider_ids(monkeypatch) -> None:
+def test_upload_attachments_for_thread_reuses_existing_provider_ids(
+    monkeypatch: MonkeyPatch,
+) -> None:
     message = ChatMessage(
         type=ChatMessageType.human,
         content=[
@@ -95,7 +113,7 @@ def test_upload_attachments_for_thread_reuses_existing_provider_ids(monkeypatch)
 
     monkeypatch.setattr("app.core.graph.attachments._upload_to_openai", fake_openai)
 
-    members = [SimpleNamespace(provider="openai", base_url=None)]
+    members = [_build_member(provider="openai", base_url=None)]
     upload_attachments_for_thread(message=message, members=members)
 
     assert openai_calls == []
@@ -104,7 +122,9 @@ def test_upload_attachments_for_thread_reuses_existing_provider_ids(monkeypatch)
     assert file_part.file.provider_file_ids == {"openai": "existing-openai-id"}
 
 
-def test_upload_attachments_for_thread_stores_image_provider_ids(monkeypatch) -> None:
+def test_upload_attachments_for_thread_stores_image_provider_ids(
+    monkeypatch: MonkeyPatch,
+) -> None:
     message = ChatMessage(
         type=ChatMessageType.human,
         content=[
@@ -127,8 +147,8 @@ def test_upload_attachments_for_thread_stores_image_provider_ids(monkeypatch) ->
     monkeypatch.setattr("app.core.graph.attachments._upload_to_gigachat", fake_gigachat)
 
     members = [
-        SimpleNamespace(provider="openai", base_url=None),
-        SimpleNamespace(provider="gigachat", base_url=None),
+        _build_member(provider="openai", base_url=None),
+        _build_member(provider="gigachat", base_url=None),
     ]
 
     upload_attachments_for_thread(message=message, members=members)
@@ -141,7 +161,9 @@ def test_upload_attachments_for_thread_stores_image_provider_ids(monkeypatch) ->
     }
 
 
-def test_upload_attachments_for_thread_uploads_missing_provider_after_team_change(monkeypatch) -> None:
+def test_upload_attachments_for_thread_uploads_missing_provider_after_team_change(
+    monkeypatch: MonkeyPatch,
+) -> None:
     message = ChatMessage(
         type=ChatMessageType.human,
         content=[
@@ -169,8 +191,8 @@ def test_upload_attachments_for_thread_uploads_missing_provider_after_team_chang
     monkeypatch.setattr("app.core.graph.attachments._upload_to_gigachat", fake_gigachat)
 
     members = [
-        SimpleNamespace(provider="openai", base_url=None),
-        SimpleNamespace(provider="gigachat", base_url=None),
+        _build_member(provider="openai", base_url=None),
+        _build_member(provider="gigachat", base_url=None),
     ]
 
     upload_attachments_for_thread(message=message, members=members)
