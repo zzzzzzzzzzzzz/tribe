@@ -76,7 +76,9 @@ def _chat_content_to_langchain_content(
     return langchain_content
 
 
-def _file_data_to_text_part(file_data: str, filename: str | None) -> dict[str, str] | None:
+def _file_data_to_text_part(
+    file_data: str, filename: str | None
+) -> dict[str, str] | None:
     if not file_data.startswith("data:"):
         return None
     try:

@@ -32,11 +32,7 @@ def convert_checkpoint_tuple_to_messages(
     )
     formatted_messages: list[ChatResponse] = []
     for message in all_messages:
-        if (
-            isinstance(message, HumanMessage)
-            and message.id
-            and message.name
-        ):
+        if isinstance(message, HumanMessage) and message.id and message.name:
             human_content: str
             if isinstance(message.content, str):
                 human_content = message.content

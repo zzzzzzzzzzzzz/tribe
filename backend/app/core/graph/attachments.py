@@ -30,7 +30,9 @@ def _parse_data_url(data_url: str) -> tuple[str, bytes] | None:
     return mime_type, decoded
 
 
-def _upload_to_openai(*, content: bytes, filename: str, base_url: str | None) -> str | None:
+def _upload_to_openai(
+    *, content: bytes, filename: str, base_url: str | None
+) -> str | None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
@@ -40,7 +42,9 @@ def _upload_to_openai(*, content: bytes, filename: str, base_url: str | None) ->
     return uploaded.id
 
 
-def _upload_to_gigachat(*, content: bytes, filename: str, base_url: str | None) -> str | None:
+def _upload_to_gigachat(
+    *, content: bytes, filename: str, base_url: str | None
+) -> str | None:
     token = os.getenv("GIGACHAT_AUTH_TOKEN")
     if not token:
         return None
@@ -54,7 +58,9 @@ def _upload_to_gigachat(*, content: bytes, filename: str, base_url: str | None) 
     return uploaded.id_
 
 
-def _target_provider_configs(members: Iterable[Member]) -> set[tuple[ProviderName, str | None]]:
+def _target_provider_configs(
+    members: Iterable[Member],
+) -> set[tuple[ProviderName, str | None]]:
     targets: set[tuple[ProviderName, str | None]] = set()
     for member in members:
         if member.provider == "openai":
@@ -64,7 +70,9 @@ def _target_provider_configs(members: Iterable[Member]) -> set[tuple[ProviderNam
     return targets
 
 
-def upload_attachments_for_thread(*, message: ChatMessage, members: list[Member]) -> ChatMessage:
+def upload_attachments_for_thread(
+    *, message: ChatMessage, members: list[Member]
+) -> ChatMessage:
     if isinstance(message.content, str):
         return message
 

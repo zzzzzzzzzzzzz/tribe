@@ -77,7 +77,9 @@ def test_chat_message_attachment_count_limit() -> None:
             content=[
                 ChatContentFilePart(
                     type="file",
-                    file=ChatContentFileData(filename=f"file-{index}.txt", file_data=None),
+                    file=ChatContentFileData(
+                        filename=f"file-{index}.txt", file_data=None
+                    ),
                 )
                 for index in range(11)
             ],
@@ -92,7 +94,9 @@ def test_chat_message_attachment_size_limit() -> None:
             content=[
                 ChatContentFilePart(
                     type="file",
-                    file=ChatContentFileData(filename="big.txt", file_data=oversized_data),
+                    file=ChatContentFileData(
+                        filename="big.txt", file_data=oversized_data
+                    ),
                 )
             ],
         )
