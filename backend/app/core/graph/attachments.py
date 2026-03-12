@@ -38,7 +38,7 @@ def _upload_to_openai(
         return None
 
     client = OpenAI(api_key=api_key, base_url=base_url)
-    uploaded = client.files.create(file=(filename, content), purpose="assistants")
+    uploaded = client.files.create(file=(filename, content), purpose="vision")
     return uploaded.id
 
 
@@ -54,7 +54,7 @@ def _upload_to_gigachat(
         base_url=base_url,
         verify_ssl_certs=False,
     )
-    uploaded = client.upload_file((filename, content), purpose="assistant")
+    uploaded = client.upload_file((filename, content))
     return uploaded.id_
 
 

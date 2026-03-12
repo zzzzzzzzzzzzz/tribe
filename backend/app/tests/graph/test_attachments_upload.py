@@ -1,5 +1,8 @@
+from typing import Any
+
 from pytest import MonkeyPatch
 
+from app.core.graph import attachments
 from app.core.graph.attachments import upload_attachments_for_thread
 from app.models import (
     ChatContentFileData,
@@ -204,3 +207,72 @@ def test_upload_attachments_for_thread_uploads_missing_provider_after_team_chang
         "openai": "existing-openai-id",
         "gigachat": "new-gigachat-id",
     }
+
+
+def test_upload_to_openai_uses_vision_purpose(monkeypatch: MonkeyPatch) -> None:
+    recorded: dict[str, object] = {}
+
+    class FakeFiles:
+        def create(self, *, file: tuple[str, bytes], purpose: str) -> Any:
+            recorded["file"] = file
+            recorded["purpose"] = purpose
+
+            class Uploaded:
+                id = "openai-file-id"
+
+            return Uploaded()
+
+    class FakeOpenAI:
+        def __init__(self, *, api_key: str, base_url: str | None) -> None:
+            recorded["api_key"] = api_key
+            recorded["base_url"] = base_url
+            self.files = FakeFiles()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "token")
+    monkeypatch.setattr("app.core.graph.attachments.OpenAI", FakeOpenAI)
+
+    remote_id = attachments._upload_to_openai(
+        content=b"pdf-bytes",
+        filename="lease.pdf",
+        base_url="https://openai.example",
+    )
+
+    assert remote_id == "openai-file-id"
+    assert recorded["purpose"] == "vision"
+    assert recorded["file"] == ("lease.pdf", b"pdf-bytes")
+
+
+def test_upload_to_gigachat_does_not_send_purpose(monkeypatch: MonkeyPatch) -> None:
+    recorded: dict[str, object] = {}
+
+    class FakeGigaChat:
+        def __init__(
+            self,
+            *,
+            credentials: str,
+            base_url: str | None,
+            verify_ssl_certs: bool,
+        ) -> None:
+            recorded["credentials"] = credentials
+            recorded["base_url"] = base_url
+            recorded["verify_ssl_certs"] = verify_ssl_certs
+
+        def upload_file(self, payload: tuple[str, bytes]) -> Any:
+            recorded["payload"] = payload
+
+            class Uploaded:
+                id_ = "giga-file-id"
+
+            return Uploaded()
+
+    monkeypatch.setenv("GIGACHAT_AUTH_TOKEN", "token")
+    monkeypatch.setattr("app.core.graph.attachments.GigaChat", FakeGigaChat)
+
+    remote_id = attachments._upload_to_gigachat(
+        content=b"image-bytes",
+        filename="contract.jpg",
+        base_url="https://gigachat.example",
+    )
+
+    assert remote_id == "giga-file-id"
+    assert recorded["payload"] == ("contract.jpg", b"image-bytes")
