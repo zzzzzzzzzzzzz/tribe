@@ -60,7 +60,14 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
     assert isinstance(content_parts, list)
     third_part = content_parts[2]
     assert isinstance(third_part, dict)
-    assert third_part == {"type": "text", "text": "[Attached file: report.txt]"}
+    assert third_part == {
+        "type": "file",
+        "file": {
+            "file_id": "file-123",
+            "filename": "report.txt",
+            "file_data": _base64_data_url(b"hello from attachment", "text/plain"),
+        },
+    }
     fourth_part = content_parts[3]
     assert isinstance(fourth_part, dict)
     assert fourth_part == {
@@ -71,7 +78,7 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
 
 
 def test_chat_message_attachment_count_limit() -> None:
-    with pytest.raises(ValueError, match="No more than 10 attachments"):
+    with pytest.raises(ValueError, match="No more than 5 attachments"):
         ChatMessage(
             type=ChatMessageType.human,
             content=[
@@ -81,7 +88,7 @@ def test_chat_message_attachment_count_limit() -> None:
                         filename=f"file-{index}.txt", file_data=None
                     ),
                 )
-                for index in range(11)
+                for index in range(6)
             ],
         )
 

@@ -64,13 +64,6 @@ def _chat_content_to_langchain_content(
 
     langchain_content: list[str | dict[Any, Any]] = []
     for part in content:
-        if isinstance(part, ChatContentFilePart):
-            filename = part.file.filename
-            if isinstance(filename, str) and filename:
-                langchain_content.append(
-                    {"type": "text", "text": f"[Attached file: {filename}]"}
-                )
-            continue
         langchain_content.append(part.model_dump(exclude_none=True))
 
     return langchain_content

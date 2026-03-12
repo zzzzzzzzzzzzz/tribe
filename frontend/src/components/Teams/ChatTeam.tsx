@@ -69,7 +69,7 @@ const IMAGE_EXTENSIONS = [
   ".heif",
 ]
 
-const MAX_ATTACHMENTS = 10
+const MAX_ATTACHMENTS = 5
 const MAX_ATTACHMENT_SIZE_BYTES = 20 * 1024 * 1024
 
 const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {

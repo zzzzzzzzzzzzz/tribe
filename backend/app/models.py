@@ -181,8 +181,8 @@ class ChatMessage(BaseModel):
         attachments = [
             part for part in self.content if part.type in {"file", "image_url"}
         ]
-        if len(attachments) > 10:
-            raise ValueError("No more than 10 attachments are allowed per message")
+        if len(attachments) > 5:
+            raise ValueError("No more than 5 attachments are allowed per message")
 
         max_size_bytes = 20 * 1024 * 1024
         for part in self.content:
