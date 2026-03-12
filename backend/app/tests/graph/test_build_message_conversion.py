@@ -51,30 +51,50 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[0] == {"type": "text", "text": "Describe this"}
+    assert result.content[0] == {"type": "input_text", "text": "Describe this"}
     assert result.content[1] == {
-        "type": "image_url",
-        "image_url": {"url": "data:image/png;base64,AAA"},
+        "type": "input_image",
+        "image_url": "data:image/png;base64,AAA",
     }
-    content_parts = result.content
-    assert isinstance(content_parts, list)
-    third_part = content_parts[2]
-    assert isinstance(third_part, dict)
-    assert third_part == {
-        "type": "file",
-        "file": {
-            "file_id": "file-123",
-            "filename": "report.txt",
-            "file_data": _base64_data_url(b"hello from attachment", "text/plain"),
-        },
-    }
-    fourth_part = content_parts[3]
-    assert isinstance(fourth_part, dict)
-    assert fourth_part == {
-        "type": "text",
+    assert result.content[2] == {"type": "input_file", "file_id": "file-123"}
+    assert result.content[3] == {
+        "type": "input_text",
         "text": "[Attached file: report.txt]\nhello from attachment",
     }
-    assert result.additional_kwargs["attachments"] == ["file-123"]
+    assert result.additional_kwargs == {}
+
+
+def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_file_id() -> (
+    None
+):
+    image_data = _base64_data_url(b"image-data", "image/jpeg")
+    pdf_data = _base64_data_url(b"%PDF-1.4 fake", "application/pdf")
+    message = ChatMessage(
+        type=ChatMessageType.human,
+        content=[
+            ChatContentImagePart(
+                type="image_url",
+                image_url=ChatContentImageData(url=image_data),
+            ),
+            ChatContentFilePart(
+                type="file",
+                file=ChatContentFileData(
+                    filename="contract.pdf",
+                    file_data=pdf_data,
+                ),
+            ),
+        ],
+    )
+
+    result = chat_message_to_human_message(message)
+
+    assert isinstance(result.content, list)
+    assert result.content[0] == {"type": "input_image", "image_url": image_data}
+    assert result.content[1] == {
+        "type": "input_file",
+        "filename": "contract.pdf",
+        "file_data": pdf_data,
+    }
 
 
 def test_chat_message_attachment_count_limit() -> None:
@@ -126,7 +146,9 @@ def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() 
 
     result = chat_message_to_human_message(message)
 
-    assert result.additional_kwargs["attachments"] == ["image-file-123"]
+    assert isinstance(result.content, list)
+    assert result.content[1] == {"type": "input_image", "file_id": "image-file-123"}
+    assert result.additional_kwargs == {}
 
 
 def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -> None:
