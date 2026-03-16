@@ -178,6 +178,10 @@ def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -
 
     assert result.additional_kwargs["attachments"] == ["g-file-id", "g-image-id"]
     assert isinstance(result.content, list)
-    image_part = result.content[2]
+    image_part = next(
+        part
+        for part in result.content
+        if isinstance(part, dict) and part.get("type") == "image_url"
+    )
     assert isinstance(image_part, dict)
     assert image_part["image_url"]["giga_id"] == "g-image-id"
