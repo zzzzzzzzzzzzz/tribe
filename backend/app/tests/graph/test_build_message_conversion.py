@@ -1,6 +1,8 @@
+from typing import Literal
+
 import pytest
 
-from app.core.graph.build import chat_message_to_human_message
+from app.core.graph.build import _file_data_to_text_part, chat_message_to_human_message
 from app.models import (
     ChatContentFileData,
     ChatContentFilePart,
@@ -17,6 +19,45 @@ def _base64_data_url(data: bytes, mime: str) -> str:
 
     encoded = base64.b64encode(data).decode("ascii")
     return f"data:{mime};base64,{encoded}"
+
+
+def test_file_data_to_text_part_extracts_pdf_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakePage:
+        def get_text(self, _mode: str) -> str:
+            return "Lease tenant: John Doe"
+
+    class _FakeDocument:
+        def __enter__(self) -> "_FakeDocument":
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
+            return False
+
+        def __iter__(self) -> object:
+            return iter([_FakePage()])
+
+    class _FakePyMuPDF:
+        @staticmethod
+        def open(*, stream: object, filetype: str) -> _FakeDocument:
+            assert filetype == "pdf"
+            assert stream is not None
+            return _FakeDocument()
+
+    import sys
+
+    monkeypatch.setitem(sys.modules, "pymupdf", _FakePyMuPDF())
+
+    result = _file_data_to_text_part(
+        _base64_data_url(b"%PDF-1.4 fake", "application/pdf"),
+        "lease.pdf",
+    )
+
+    assert result == {
+        "type": "text",
+        "text": "[Attached file: lease.pdf]\nLease tenant: John Doe",
+    }
 
 
 def test_chat_message_to_human_message_with_string_content() -> None:
@@ -51,17 +92,24 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[0] == {"type": "input_text", "text": "Describe this"}
+    assert result.content[0] == {"type": "text", "text": "Describe this"}
     assert result.content[1] == {
-        "type": "input_image",
-        "image_url": "data:image/png;base64,AAA",
+        "type": "image_url",
+        "image_url": {"url": "data:image/png;base64,AAA"},
     }
-    assert result.content[2] == {"type": "input_file", "file_id": "file-123"}
+    assert result.content[2] == {
+        "type": "file",
+        "file": {
+            "file_id": "file-123",
+            "filename": "report.txt",
+            "file_data": _base64_data_url(b"hello from attachment", "text/plain"),
+        },
+    }
     assert result.content[3] == {
-        "type": "input_text",
+        "type": "text",
         "text": "[Attached file: report.txt]\nhello from attachment",
     }
-    assert result.additional_kwargs == {}
+    assert result.additional_kwargs == {"attachments": ["file-123"]}
 
 
 def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_file_id() -> (
@@ -89,11 +137,10 @@ def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_fil
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[0] == {"type": "input_image", "image_url": image_data}
+    assert result.content[0] == {"type": "image_url", "image_url": {"url": image_data}}
     assert result.content[1] == {
-        "type": "input_file",
-        "filename": "contract.pdf",
-        "file_data": pdf_data,
+        "type": "file",
+        "file": {"filename": "contract.pdf", "file_data": pdf_data},
     }
 
 
@@ -147,8 +194,14 @@ def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() 
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[1] == {"type": "input_image", "file_id": "image-file-123"}
-    assert result.additional_kwargs == {}
+    assert result.content[1] == {
+        "type": "image_url",
+        "image_url": {
+            "url": "data:image/png;base64,AAA",
+            "provider_file_ids": {"openai": "image-file-123"},
+        },
+    }
+    assert result.additional_kwargs == {"attachments": ["image-file-123"]}
 
 
 def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -> None:

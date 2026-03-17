@@ -4,6 +4,7 @@ import mimetypes
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Hashable, Mapping, Sequence
 from functools import partial
+from io import BytesIO
 from typing import Any, cast
 from uuid import uuid4
 
@@ -90,9 +91,24 @@ def _file_data_to_text_part(
 
     try:
         decoded = base64.b64decode(payload, validate=True)
-        text = decoded.decode("utf-8")
     except Exception:
         return None
+
+    if final_content_type == "application/pdf":
+        try:
+            import pymupdf  # type: ignore[import-untyped]
+
+            with pymupdf.open(stream=BytesIO(decoded), filetype="pdf") as document:
+                text = "\n".join(page.get_text("text") for page in document)
+        except Exception:
+            return None
+        if not text.strip():
+            return None
+    else:
+        try:
+            text = decoded.decode("utf-8")
+        except Exception:
+            return None
 
     title = filename or "attachment"
     return {
@@ -114,10 +130,7 @@ def chat_message_to_human_message(
     converted_content: list[str | dict[Any, Any]] = []
     for part in message.content:
         if isinstance(part, ChatContentTextPart):
-            if attachment_provider == "openai":
-                converted_content.append({"type": "input_text", "text": part.text})
-            else:
-                converted_content.append(part.model_dump(exclude_none=True))
+            converted_content.append(part.model_dump(exclude_none=True))
             continue
 
         if isinstance(part, ChatContentFilePart):
@@ -130,30 +143,18 @@ def chat_message_to_human_message(
             if isinstance(file_id, str) and file_id:
                 attachments.append(file_id)
 
-            if attachment_provider == "openai":
-                if isinstance(file_id, str) and file_id:
-                    converted_content.append({"type": "input_file", "file_id": file_id})
-                elif isinstance(part.file.file_data, str) and part.file.file_data:
-                    converted_content.append(
-                        {
-                            "type": "input_file",
-                            "filename": part.file.filename or "attachment",
-                            "file_data": part.file.file_data,
-                        }
-                    )
-            else:
-                converted_content.append(part.model_dump(exclude_none=True))
+            file_part = part.model_dump(exclude_none=True)
+            if isinstance(file_id, str) and file_id and isinstance(file_part, dict):
+                file_payload = file_part.get("file")
+                if isinstance(file_payload, dict):
+                    file_payload["file_id"] = file_id
+            converted_content.append(file_part)
 
             file_text_part = _file_data_to_text_part(
                 part.file.file_data or "", part.file.filename
             )
             if file_text_part:
-                if attachment_provider == "openai":
-                    converted_content.append(
-                        {"type": "input_text", "text": file_text_part["text"]}
-                    )
-                else:
-                    converted_content.append(file_text_part)
+                converted_content.append(file_text_part)
             continue
 
         if isinstance(part, ChatContentImagePart):
@@ -166,30 +167,17 @@ def chat_message_to_human_message(
             if isinstance(image_file_id, str) and image_file_id:
                 attachments.append(image_file_id)
 
-            if attachment_provider == "openai":
-                if isinstance(image_file_id, str) and image_file_id:
-                    converted_content.append(
-                        {"type": "input_image", "file_id": image_file_id}
-                    )
-                else:
-                    converted_content.append(
-                        {
-                            "type": "input_image",
-                            "image_url": part.image_url.url,
-                        }
-                    )
-            else:
-                image_part = part.model_dump(exclude_none=True)
-                if (
-                    attachment_provider == "gigachat"
-                    and isinstance(image_part.get("image_url"), dict)
-                    and isinstance(image_file_id, str)
-                ):
-                    image_part["image_url"]["giga_id"] = image_file_id
-                converted_content.append(image_part)
+            image_part = part.model_dump(exclude_none=True)
+            if (
+                attachment_provider == "gigachat"
+                and isinstance(image_part.get("image_url"), dict)
+                and isinstance(image_file_id, str)
+            ):
+                image_part["image_url"]["giga_id"] = image_file_id
+            converted_content.append(image_part)
 
     kwargs: dict[str, Any] = {}
-    if attachments and attachment_provider != "openai":
+    if attachments:
         kwargs["attachments"] = attachments
     return HumanMessage(
         content=converted_content,

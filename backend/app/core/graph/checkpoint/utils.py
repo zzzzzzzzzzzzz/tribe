@@ -43,15 +43,24 @@ def convert_checkpoint_tuple_to_messages(
                         content_parts.append(part)
                     elif isinstance(part, dict):
                         part_type = part.get("type")
-                        if part_type == "text":
+                        if part_type in {"text", "input_text"}:
                             text = part.get("text")
                             if isinstance(text, str) and text:
                                 content_parts.append(text)
-                        elif part_type == "image_url":
+                        elif part_type in {"image_url", "input_image"}:
                             content_parts.append("[Attached image]")
-                        elif part_type == "file":
-                            file_name = part.get("file", {}).get("filename")
-                            if isinstance(file_name, str) and file_name:
+                        elif part_type in {"file", "input_file"}:
+                            file_name: str | None = None
+                            file_payload = part.get("file")
+                            if isinstance(file_payload, dict):
+                                maybe_name = file_payload.get("filename")
+                                if isinstance(maybe_name, str) and maybe_name:
+                                    file_name = maybe_name
+                            if file_name is None:
+                                maybe_name = part.get("filename")
+                                if isinstance(maybe_name, str) and maybe_name:
+                                    file_name = maybe_name
+                            if file_name:
                                 content_parts.append(f"[Attached file: {file_name}]")
                             else:
                                 content_parts.append("[Attached file]")

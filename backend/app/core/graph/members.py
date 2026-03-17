@@ -135,15 +135,24 @@ def format_messages(messages: list[AnyMessage]) -> str:
                     continue
 
                 part_type = part.get("type")
-                if part_type == "text":
+                if part_type in {"text", "input_text"}:
                     text = part.get("text")
                     if isinstance(text, str) and text:
                         formatted_parts.append(text)
-                elif part_type == "image_url":
+                elif part_type in {"image_url", "input_image"}:
                     formatted_parts.append("[Attached image]")
-                elif part_type == "file":
-                    filename = part.get("file", {}).get("filename")
-                    if isinstance(filename, str) and filename:
+                elif part_type in {"file", "input_file"}:
+                    filename: str | None = None
+                    file_payload = part.get("file")
+                    if isinstance(file_payload, Mapping):
+                        maybe_name = file_payload.get("filename")
+                        if isinstance(maybe_name, str) and maybe_name:
+                            filename = maybe_name
+                    if filename is None:
+                        maybe_name = part.get("filename")
+                        if isinstance(maybe_name, str) and maybe_name:
+                            filename = maybe_name
+                    if filename:
                         formatted_parts.append(f"[Attached file: {filename}]")
                     else:
                         formatted_parts.append("[Attached file]")
