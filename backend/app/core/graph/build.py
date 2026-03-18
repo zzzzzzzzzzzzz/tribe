@@ -140,6 +140,7 @@ def chat_message_to_human_message(
                 else None
             )
             file_id = provider_file_id or part.file.file_id
+            has_native_file_reference = isinstance(file_id, str) and bool(file_id)
             if isinstance(file_id, str) and file_id:
                 attachments.append(file_id)
 
@@ -150,11 +151,12 @@ def chat_message_to_human_message(
                     file_payload["file_id"] = file_id
             converted_content.append(file_part)
 
-            file_text_part = _file_data_to_text_part(
-                part.file.file_data or "", part.file.filename
-            )
-            if file_text_part:
-                converted_content.append(file_text_part)
+            if not has_native_file_reference:
+                file_text_part = _file_data_to_text_part(
+                    part.file.file_data or "", part.file.filename
+                )
+                if file_text_part:
+                    converted_content.append(file_text_part)
             continue
 
         if isinstance(part, ChatContentImagePart):

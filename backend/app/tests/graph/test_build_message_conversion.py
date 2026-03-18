@@ -105,10 +105,7 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
             "file_data": _base64_data_url(b"hello from attachment", "text/plain"),
         },
     }
-    assert result.content[3] == {
-        "type": "text",
-        "text": "[Attached file: report.txt]\nhello from attachment",
-    }
+    assert len(result.content) == 3
     assert result.additional_kwargs == {"attachments": ["file-123"]}
 
 
