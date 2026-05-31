@@ -1,12 +1,13 @@
 import os
 from datetime import datetime
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select
 
 from app.core.celery_app import celery_app
 from app.core.db import engine
-from app.core.graph.attachments import delete_provider_file
+from app.core.graph.attachments import ProviderName, delete_provider_file
 from app.core.graph.rag.qdrant import QdrantStore
 from app.models import ProviderAttachment, Upload, UploadStatus
 
@@ -80,7 +81,7 @@ def cleanup_expired_provider_attachments(limit: int = 100) -> None:
         attachments = session.exec(
             select(ProviderAttachment)
             .where(
-                ProviderAttachment.deleted_at.is_(None),  # type: ignore[attr-defined]
+                cast(Any, ProviderAttachment.deleted_at).is_(None),
                 ProviderAttachment.expires_at <= now,
             )
             .limit(limit)
@@ -89,7 +90,7 @@ def cleanup_expired_provider_attachments(limit: int = 100) -> None:
         for attachment in attachments:
             try:
                 delete_provider_file(
-                    provider_name=attachment.provider,  # type: ignore[arg-type]
+                    provider_name=cast(ProviderName, attachment.provider),
                     file_id=attachment.file_id,
                     base_url=attachment.base_url,
                 )

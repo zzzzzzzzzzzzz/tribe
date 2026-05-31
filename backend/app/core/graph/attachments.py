@@ -22,6 +22,7 @@ from app.models import (
 
 ProviderName = Literal["openai", "gigachat"]
 ProviderFileIds = dict[ProviderName, list[str]]
+OpenAIFilePurpose = Literal["vision", "user_data"]
 SUPPORTED_IMAGE_TYPES = {"image/gif", "image/jpeg", "image/png", "image/webp"}
 SUPPORTED_FILE_TYPES = {
     "application/json",
@@ -52,7 +53,9 @@ def _parse_data_url(data_url: str) -> tuple[str, bytes] | None:
     return mime_type, decoded
 
 
-def _openai_file_purpose(*, filename: str, content_type: str | None) -> str:
+def _openai_file_purpose(
+    *, filename: str, content_type: str | None
+) -> OpenAIFilePurpose:
     guessed_type = mimetypes.guess_type(filename)[0]
     effective_type = content_type or guessed_type
     if effective_type and effective_type.startswith("image/"):

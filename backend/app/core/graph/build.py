@@ -27,6 +27,7 @@ from psycopg.rows import DictRow, dict_row
 
 from app.core.config import settings
 from app.core.graph.attachments import (
+    ProviderFileIds,
     collect_provider_file_ids,
     merge_provider_file_ids,
     persist_provider_attachments,
@@ -774,7 +775,7 @@ async def generator(
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
 
-    uploaded_provider_file_ids = {"openai": [], "gigachat": []}
+    uploaded_provider_file_ids: ProviderFileIds = {"openai": [], "gigachat": []}
     if messages:
         messages = [
             upload_attachments_for_thread(message=message, members=members)

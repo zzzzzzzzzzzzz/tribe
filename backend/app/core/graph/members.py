@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
 from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AnyMessage
 from langchain_core.output_parsers.openai_tools import JsonOutputKeyToolsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -194,9 +195,10 @@ class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
+        self.model: BaseChatModel
         if provider == "openai":
             self.model = ChatOpenAI(
-                model,
+                model=model,
                 temperature=temperature,
                 base_url=base_url,
                 use_responses_api=True,
