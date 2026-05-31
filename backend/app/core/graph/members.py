@@ -192,12 +192,13 @@ class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
-        if provider in ["openai"] and base_url:
-            self.model = init_chat_model(
+        if provider == "openai":
+            self.model = ChatOpenAI(
                 model,
-                model_provider=provider,
                 temperature=temperature,
                 base_url=base_url,
+                use_responses_api=True,
+                output_version="responses/v1",
             )
         elif provider == "gigachat":
             auth_token_secret = secret_from_env("GIGACHAT_AUTH_TOKEN", default=None)()

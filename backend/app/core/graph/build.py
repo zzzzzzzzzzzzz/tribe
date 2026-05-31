@@ -130,7 +130,10 @@ def chat_message_to_human_message(
     converted_content: list[str | dict[Any, Any]] = []
     for part in message.content:
         if isinstance(part, ChatContentTextPart):
-            converted_content.append(part.model_dump(exclude_none=True))
+            if attachment_provider == "openai":
+                converted_content.append({"type": "input_text", "text": part.text})
+            else:
+                converted_content.append(part.model_dump(exclude_none=True))
             continue
 
         if isinstance(part, ChatContentFilePart):
@@ -141,15 +144,34 @@ def chat_message_to_human_message(
             )
             file_id = provider_file_id or part.file.file_id
             has_native_file_reference = isinstance(file_id, str) and bool(file_id)
-            if isinstance(file_id, str) and file_id:
+            if (
+                attachment_provider == "gigachat"
+                and isinstance(file_id, str)
+                and file_id
+            ):
                 attachments.append(file_id)
 
-            file_part = part.model_dump(exclude_none=True)
-            if isinstance(file_id, str) and file_id and isinstance(file_part, dict):
-                file_payload = file_part.get("file")
-                if isinstance(file_payload, dict):
-                    file_payload["file_id"] = file_id
-            converted_content.append(file_part)
+            if attachment_provider == "openai":
+                if has_native_file_reference:
+                    converted_content.append(
+                        {"type": "input_file", "file_id": cast(str, file_id)}
+                    )
+                else:
+                    file_text_part = _file_data_to_text_part(
+                        part.file.file_data or "", part.file.filename
+                    )
+                    if file_text_part:
+                        converted_content.append(
+                            {"type": "input_text", "text": file_text_part["text"]}
+                        )
+                continue
+
+            file_payload = part.file.model_dump(
+                exclude={"provider_file_ids"}, exclude_none=True
+            )
+            if isinstance(file_id, str) and file_id:
+                file_payload["file_id"] = file_id
+            converted_content.append({"type": "file", "file": file_payload})
 
             if not has_native_file_reference:
                 file_text_part = _file_data_to_text_part(
@@ -167,16 +189,29 @@ def chat_message_to_human_message(
                 else None
             )
             if isinstance(image_file_id, str) and image_file_id:
-                attachments.append(image_file_id)
+                if attachment_provider == "gigachat":
+                    attachments.append(image_file_id)
 
-            image_part = part.model_dump(exclude_none=True)
-            if (
-                attachment_provider == "gigachat"
-                and isinstance(image_part.get("image_url"), dict)
-                and isinstance(image_file_id, str)
-            ):
-                image_part["image_url"]["giga_id"] = image_file_id
-            converted_content.append(image_part)
+            if attachment_provider == "openai":
+                if isinstance(image_file_id, str) and image_file_id:
+                    converted_content.append(
+                        {"type": "input_image", "file_id": image_file_id}
+                    )
+                else:
+                    converted_content.append(
+                        {
+                            "type": "input_image",
+                            "image_url": part.image_url.url,
+                        }
+                    )
+                continue
+
+            image_payload = part.image_url.model_dump(
+                exclude={"provider_file_ids"}, exclude_none=True
+            )
+            if attachment_provider == "gigachat" and isinstance(image_file_id, str):
+                image_payload["giga_id"] = image_file_id
+            converted_content.append({"type": "image_url", "image_url": image_payload})
 
     kwargs: dict[str, Any] = {}
     if attachments:

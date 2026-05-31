@@ -242,7 +242,7 @@ def test_upload_to_openai_uses_vision_purpose(monkeypatch: MonkeyPatch) -> None:
     assert recorded["file"] == ("lease.pdf", b"pdf-bytes")
 
 
-def test_upload_to_gigachat_does_not_send_purpose(monkeypatch: MonkeyPatch) -> None:
+def test_upload_to_gigachat_uses_general_purpose(monkeypatch: MonkeyPatch) -> None:
     recorded: dict[str, object] = {}
 
     class FakeGigaChat:
@@ -257,8 +257,9 @@ def test_upload_to_gigachat_does_not_send_purpose(monkeypatch: MonkeyPatch) -> N
             recorded["base_url"] = base_url
             recorded["verify_ssl_certs"] = verify_ssl_certs
 
-        def upload_file(self, payload: tuple[str, bytes]) -> Any:
+        def upload_file(self, payload: tuple[str, bytes], *, purpose: str) -> Any:
             recorded["payload"] = payload
+            recorded["purpose"] = purpose
 
             class Uploaded:
                 id_ = "giga-file-id"
@@ -276,3 +277,4 @@ def test_upload_to_gigachat_does_not_send_purpose(monkeypatch: MonkeyPatch) -> N
 
     assert remote_id == "giga-file-id"
     assert recorded["payload"] == ("contract.jpg", b"image-bytes")
+    assert recorded["purpose"] == "general"

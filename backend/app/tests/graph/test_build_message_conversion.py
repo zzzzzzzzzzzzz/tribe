@@ -92,21 +92,17 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[0] == {"type": "text", "text": "Describe this"}
+    assert result.content[0] == {"type": "input_text", "text": "Describe this"}
     assert result.content[1] == {
-        "type": "image_url",
-        "image_url": {"url": "data:image/png;base64,AAA"},
+        "type": "input_image",
+        "image_url": "data:image/png;base64,AAA",
     }
     assert result.content[2] == {
-        "type": "file",
-        "file": {
-            "file_id": "file-123",
-            "filename": "report.txt",
-            "file_data": _base64_data_url(b"hello from attachment", "text/plain"),
-        },
+        "type": "input_file",
+        "file_id": "file-123",
     }
     assert len(result.content) == 3
-    assert result.additional_kwargs == {"attachments": ["file-123"]}
+    assert result.additional_kwargs == {}
 
 
 def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_file_id() -> (
@@ -134,11 +130,8 @@ def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_fil
     result = chat_message_to_human_message(message)
 
     assert isinstance(result.content, list)
-    assert result.content[0] == {"type": "image_url", "image_url": {"url": image_data}}
-    assert result.content[1] == {
-        "type": "file",
-        "file": {"filename": "contract.pdf", "file_data": pdf_data},
-    }
+    assert result.content[0] == {"type": "input_image", "image_url": image_data}
+    assert len(result.content) == 1
 
 
 def test_chat_message_attachment_count_limit() -> None:
@@ -192,13 +185,10 @@ def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() 
 
     assert isinstance(result.content, list)
     assert result.content[1] == {
-        "type": "image_url",
-        "image_url": {
-            "url": "data:image/png;base64,AAA",
-            "provider_file_ids": {"openai": "image-file-123"},
-        },
+        "type": "input_image",
+        "file_id": "image-file-123",
     }
-    assert result.additional_kwargs == {"attachments": ["image-file-123"]}
+    assert result.additional_kwargs == {}
 
 
 def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -> None:
@@ -235,3 +225,35 @@ def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -
     )
     assert isinstance(image_part, dict)
     assert image_part["image_url"]["giga_id"] == "g-image-id"
+    assert "provider_file_ids" not in image_part["image_url"]
+
+
+def test_chat_message_to_human_message_openai_uses_uploaded_file_ids() -> None:
+    message = ChatMessage(
+        type=ChatMessageType.human,
+        content=[
+            ChatContentFilePart(
+                type="file",
+                file=ChatContentFileData(
+                    filename="notes.txt",
+                    file_data=_base64_data_url(b"hello", "text/plain"),
+                    provider_file_ids={"openai": "openai-file-id"},
+                ),
+            ),
+            ChatContentImagePart(
+                type="image_url",
+                image_url=ChatContentImageData(
+                    url="data:image/png;base64,AAA",
+                    provider_file_ids={"openai": "openai-image-id"},
+                ),
+            ),
+        ],
+    )
+
+    result = chat_message_to_human_message(message, attachment_provider="openai")
+
+    assert result.content == [
+        {"type": "input_file", "file_id": "openai-file-id"},
+        {"type": "input_image", "file_id": "openai-image-id"},
+    ]
+    assert result.additional_kwargs == {}

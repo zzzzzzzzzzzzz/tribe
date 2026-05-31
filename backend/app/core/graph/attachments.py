@@ -54,8 +54,8 @@ def _upload_to_gigachat(
         base_url=base_url,
         verify_ssl_certs=False,
     )
-    uploaded = client.upload_file((filename, content))
-    return uploaded.id_
+    uploaded = client.upload_file((filename, content), purpose="general")
+    return getattr(uploaded, "id_", None) or getattr(uploaded, "id", None)
 
 
 def _target_provider_configs(
