@@ -10,6 +10,7 @@ from app.models import (
     Message,
     Skill,
     SkillCreate,
+    SkillExport,
     SkillOut,
     SkillsOut,
     SkillUpdate,
@@ -100,6 +101,49 @@ def create_skill(
     session.commit()
     session.refresh(skill)
     return skill
+
+
+@router.post("/import", response_model=SkillOut)
+def import_skill(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    skill_export: SkillExport,
+) -> Any:
+    """
+    Import a skill definition and create a new user-managed skill.
+    """
+    validate_tool_definition(skill_export.tool_definition)
+    skill = Skill(
+        name=skill_export.name,
+        description=skill_export.description,
+        managed=False,
+        tool_definition=skill_export.tool_definition,
+        owner_id=current_user.id,
+    )
+    session.add(skill)
+    session.commit()
+    session.refresh(skill)
+    return skill
+
+
+@router.get("/{id}/export", response_model=SkillExport)
+def export_skill(session: SessionDep, current_user: CurrentUser, id: int) -> Any:
+    """
+    Export a skill definition.
+    """
+    skill = session.get(Skill, id)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    if not skill.managed and (skill.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    return SkillExport(
+        name=skill.name,
+        description=skill.description,
+        managed=skill.managed,
+        tool_definition=skill.tool_definition or {},
+    )
 
 
 @router.put("/{id}", response_model=SkillOut)

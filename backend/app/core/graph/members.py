@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
 from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AnyMessage
 from langchain_core.output_parsers.openai_tools import JsonOutputKeyToolsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -135,15 +136,24 @@ def format_messages(messages: list[AnyMessage]) -> str:
                     continue
 
                 part_type = part.get("type")
-                if part_type == "text":
+                if part_type in {"text", "input_text"}:
                     text = part.get("text")
                     if isinstance(text, str) and text:
                         formatted_parts.append(text)
-                elif part_type == "image_url":
+                elif part_type in {"image_url", "input_image"}:
                     formatted_parts.append("[Attached image]")
-                elif part_type == "file":
-                    filename = part.get("file", {}).get("filename")
-                    if isinstance(filename, str) and filename:
+                elif part_type in {"file", "input_file"}:
+                    filename: str | None = None
+                    file_payload = part.get("file")
+                    if isinstance(file_payload, Mapping):
+                        maybe_name = file_payload.get("filename")
+                        if isinstance(maybe_name, str) and maybe_name:
+                            filename = maybe_name
+                    if filename is None:
+                        maybe_name = part.get("filename")
+                        if isinstance(maybe_name, str) and maybe_name:
+                            filename = maybe_name
+                    if filename:
                         formatted_parts.append(f"[Attached file: {filename}]")
                     else:
                         formatted_parts.append("[Attached file]")
@@ -164,6 +174,7 @@ class TeamState(TypedDict):
     team: GraphTeam
     next: str
     main_task: list[AnyMessage]
+    uploaded_provider_file_ids: dict[str, list[str]]
     task: list[
         AnyMessage
     ]  # This is the current task to be perform by a team member. Its a list because Worker's MessagesPlaceholder only accepts list of messages.
@@ -176,6 +187,7 @@ class ReturnTeamState(TypedDict):
     history: NotRequired[list[AnyMessage]]
     team: NotRequired[GraphTeam]
     next: NotRequired[str | None]  # Returning None is valid for sequential graphs only
+    uploaded_provider_file_ids: NotRequired[dict[str, list[str]]]
     task: NotRequired[list[AnyMessage]]
 
 
@@ -183,12 +195,14 @@ class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
-        if provider in ["openai"] and base_url:
-            self.model = init_chat_model(
-                model,
-                model_provider=provider,
+        self.model: BaseChatModel
+        if provider == "openai":
+            self.model = ChatOpenAI(
+                model=model,
                 temperature=temperature,
                 base_url=base_url,
+                use_responses_api=True,
+                output_version="responses/v1",
             )
         elif provider == "gigachat":
             auth_token_secret = secret_from_env("GIGACHAT_AUTH_TOKEN", default=None)()
@@ -224,6 +238,11 @@ class BaseNode:
 
 
 class WorkerNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Используйте файлы и изображения только как дополнительный контекст. "
+        "Приоритетом остаётся назначенная вам основная задача; не подменяйте её пересказом контекста."
+    )
     worker_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -239,6 +258,8 @@ class WorkerNode(BaseNode):
                 "human",
                 "Задача: \n\n {task_string} \n\n История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -301,6 +322,8 @@ class SequentialWorkerNode(WorkerNode):
                 "human",
                 "История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
+            ("human", WorkerNode.attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -352,6 +375,11 @@ class SequentialWorkerNode(WorkerNode):
 
 
 class LeaderNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Это только контекст для принятия решения. "
+        "Делегируйте следующую задачу согласно основной цели команды и ролям участников."
+    )
     leader_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -373,6 +401,8 @@ class LeaderNode(BaseNode):
                     "Исходя из диалога, решите, кто должен действовать следующим. Или мы должны ЗАВЕРШИТЬ? Выберите один из вариантов: {options}."
                 ),
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
         ]
     )
 
@@ -445,7 +475,7 @@ class LeaderNode(BaseNode):
                 team_members_name=team_members_name,
                 team_members_info=team_members_info,
                 persona=team.persona,
-                team_task=state["main_task"][0].content,
+                team_task=format_messages(state["main_task"]),
                 history_string=format_messages(state["history"]),
                 options=str(options),
             )
@@ -459,7 +489,9 @@ class LeaderNode(BaseNode):
                 "task": [AIMessage(content="Task completed.", name=team.name)],
             }
         else:
-            task_content: str = str(result.get("task", state["main_task"][0].content))
+            task_content: str = str(
+                result.get("task", format_messages(state["main_task"]))
+            )
             tasks = [AIMessage(content=task_content, name=team.name)]
             result["task"] = tasks
             result["all_messages"] = tasks
@@ -467,6 +499,11 @@ class LeaderNode(BaseNode):
 
 
 class SummariserNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Используйте их только как контекст для финального ответа. "
+        "Главная задача — дать итоговый ответ по основной цели команды с учётом выполненной работы."
+    )
     summariser_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -481,6 +518,8 @@ class SummariserNode(BaseNode):
                 "human",
                 "Вот задача для команды: \n\n {team_task} \n\n Вот диалог команды: \n\n {history_string} \n\n Предоставьте ваш ответ.",
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
         ]
     )
 
@@ -490,7 +529,7 @@ class SummariserNode(BaseNode):
         team = state["team"]
         team_members_name = self.get_team_members_name(team.members)
         # TODO: optimise looking for task
-        team_task = state["main_task"][0].content
+        team_task = format_messages(state["main_task"])
 
         summarise_chain: RunnableSerializable[Any, Any] = (
             self.summariser_prompt.partial(

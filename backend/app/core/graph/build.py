@@ -1,7 +1,10 @@
 import asyncio
+import base64
+import mimetypes
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Hashable, Mapping, Sequence
 from functools import partial
+from io import BytesIO
 from typing import Any, cast
 from uuid import uuid4
 
@@ -23,6 +26,13 @@ from psycopg import AsyncConnection
 from psycopg.rows import DictRow, dict_row
 
 from app.core.config import settings
+from app.core.graph.attachments import (
+    ProviderFileIds,
+    collect_provider_file_ids,
+    merge_provider_file_ids,
+    persist_provider_attachments,
+    upload_attachments_for_thread,
+)
 from app.core.graph.members import (
     GraphLeader,
     GraphMember,
@@ -61,36 +71,236 @@ def _chat_content_to_langchain_content(
 
     langchain_content: list[str | dict[Any, Any]] = []
     for part in content:
-        if isinstance(part, ChatContentFilePart):
-            filename = part.file.filename
-            if isinstance(filename, str) and filename:
-                langchain_content.append(
-                    {"type": "text", "text": f"[Attached file: {filename}]"}
-                )
-            continue
         langchain_content.append(part.model_dump(exclude_none=True))
 
     return langchain_content
 
 
-def chat_message_to_human_message(message: ChatMessage) -> HumanMessage:
-    content = _chat_content_to_langchain_content(message.content)
-    if isinstance(content, str):
+def _file_data_to_text_part(
+    file_data: str, filename: str | None
+) -> dict[str, str] | None:
+    if not file_data.startswith("data:"):
+        return None
+    try:
+        metadata, payload = file_data.split(",", 1)
+    except ValueError:
+        return None
+
+    if ";base64" not in metadata:
+        return None
+
+    content_type = metadata.split(":", 1)[1].split(";", 1)[0]
+    guessed_type = mimetypes.guess_type(filename or "")[0]
+    final_content_type = guessed_type or content_type
+    if final_content_type.startswith("image/"):
+        return None
+
+    try:
+        decoded = base64.b64decode(payload, validate=True)
+    except Exception:
+        return None
+
+    if final_content_type == "application/pdf":
+        try:
+            import pymupdf  # type: ignore[import-untyped]
+
+            with pymupdf.open(stream=BytesIO(decoded), filetype="pdf") as document:
+                text = "\n".join(page.get_text("text") for page in document)
+        except Exception:
+            return None
+        if not text.strip():
+            return None
+    else:
+        try:
+            text = decoded.decode("utf-8")
+        except Exception:
+            return None
+
+    title = filename or "attachment"
+    return {
+        "type": "text",
+        "text": f"[Attached file: {title}]\n{text}",
+    }
+
+
+def _attachment_summary_text(*, filename: str | None, kind: str) -> str:
+    if kind == "image":
+        return "[Attached image]"
+    title = filename or "attachment"
+    return f"[Attached file: {title}]"
+
+
+def _data_url_is_image(data_url: str | None) -> bool:
+    if not isinstance(data_url, str) or not data_url.startswith("data:"):
+        return False
+    try:
+        metadata = data_url.split(",", 1)[0]
+    except ValueError:
+        return False
+    return metadata.startswith("data:image/")
+
+
+def chat_message_to_human_message(
+    message: ChatMessage,
+    *,
+    attachment_provider: str | None = "openai",
+) -> HumanMessage:
+    if isinstance(message.content, str):
+        content = message.content
         return HumanMessage(content=content, name="user")
 
     attachments: list[str] = []
-    if isinstance(message.content, Sequence) and not isinstance(message.content, str):
-        for part in message.content:
-            if not isinstance(part, ChatContentFilePart):
-                continue
-            file_id = part.file.file_id
-            if isinstance(file_id, str) and file_id:
+    converted_content: list[str | dict[Any, Any]] = []
+    for part in message.content:
+        if isinstance(part, ChatContentTextPart):
+            if attachment_provider == "openai":
+                converted_content.append({"type": "input_text", "text": part.text})
+            else:
+                converted_content.append(part.model_dump(exclude_none=True))
+            continue
+
+        if isinstance(part, ChatContentFilePart):
+            provider_file_id = (
+                (part.file.provider_file_ids or {}).get(attachment_provider)
+                if attachment_provider
+                else None
+            )
+            file_id = provider_file_id or part.file.file_id
+            has_native_file_reference = isinstance(file_id, str) and bool(file_id)
+            if (
+                attachment_provider == "gigachat"
+                and isinstance(file_id, str)
+                and file_id
+            ):
                 attachments.append(file_id)
+
+            if attachment_provider == "openai":
+                if has_native_file_reference:
+                    if _data_url_is_image(part.file.file_data):
+                        converted_content.append(
+                            {"type": "input_image", "file_id": cast(str, file_id)}
+                        )
+                        converted_content.append(
+                            {
+                                "type": "input_text",
+                                "text": _attachment_summary_text(
+                                    filename=part.file.filename, kind="image"
+                                ),
+                            }
+                        )
+                        continue
+                    converted_content.append(
+                        {"type": "input_file", "file_id": cast(str, file_id)}
+                    )
+                    file_text_part = _file_data_to_text_part(
+                        part.file.file_data or "", part.file.filename
+                    )
+                    converted_content.append(
+                        {
+                            "type": "input_text",
+                            "text": (
+                                file_text_part["text"]
+                                if file_text_part
+                                else _attachment_summary_text(
+                                    filename=part.file.filename, kind="file"
+                                )
+                            ),
+                        }
+                    )
+                else:
+                    file_text_part = _file_data_to_text_part(
+                        part.file.file_data or "", part.file.filename
+                    )
+                    if file_text_part:
+                        converted_content.append(
+                            {"type": "input_text", "text": file_text_part["text"]}
+                        )
+                    else:
+                        converted_content.append(
+                            {
+                                "type": "input_text",
+                                "text": _attachment_summary_text(
+                                    filename=part.file.filename, kind="file"
+                                ),
+                            }
+                        )
+                continue
+
+            file_payload = part.file.model_dump(
+                exclude={"provider_file_ids"}, exclude_none=True
+            )
+            if isinstance(file_id, str) and file_id:
+                file_payload["file_id"] = file_id
+            converted_content.append({"type": "file", "file": file_payload})
+
+            file_text_part = _file_data_to_text_part(
+                part.file.file_data or "", part.file.filename
+            )
+            if file_text_part:
+                converted_content.append(file_text_part)
+            else:
+                converted_content.append(
+                    {
+                        "type": "text",
+                        "text": _attachment_summary_text(
+                            filename=part.file.filename, kind="file"
+                        ),
+                    }
+                )
+            continue
+
+        if isinstance(part, ChatContentImagePart):
+            image_provider_ids = part.image_url.provider_file_ids or {}
+            image_file_id = (
+                image_provider_ids.get(attachment_provider)
+                if attachment_provider
+                else None
+            )
+            if isinstance(image_file_id, str) and image_file_id:
+                if attachment_provider == "gigachat":
+                    attachments.append(image_file_id)
+
+            if attachment_provider == "openai":
+                if isinstance(image_file_id, str) and image_file_id:
+                    converted_content.append(
+                        {"type": "input_image", "file_id": image_file_id}
+                    )
+                else:
+                    converted_content.append(
+                        {
+                            "type": "input_image",
+                            "image_url": part.image_url.url,
+                        }
+                    )
+                converted_content.append(
+                    {
+                        "type": "input_text",
+                        "text": _attachment_summary_text(filename=None, kind="image"),
+                    }
+                )
+                continue
+
+            image_payload = part.image_url.model_dump(
+                exclude={"provider_file_ids"}, exclude_none=True
+            )
+            if attachment_provider == "gigachat" and isinstance(image_file_id, str):
+                image_payload["giga_id"] = image_file_id
+            converted_content.append({"type": "image_url", "image_url": image_payload})
+            converted_content.append(
+                {
+                    "type": "text",
+                    "text": _attachment_summary_text(filename=None, kind="image"),
+                }
+            )
 
     kwargs: dict[str, Any] = {}
     if attachments:
         kwargs["attachments"] = attachments
-    return HumanMessage(content=content, name="user", additional_kwargs=kwargs)
+    return HumanMessage(
+        content=converted_content,
+        name="user",
+        additional_kwargs=kwargs,
+    )
 
 
 def convert_hierarchical_team_to_dict(
@@ -565,9 +775,33 @@ async def generator(
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
 
+    uploaded_provider_file_ids: ProviderFileIds = {"openai": [], "gigachat": []}
+    if messages:
+        messages = [
+            upload_attachments_for_thread(message=message, members=members)
+            for message in messages
+        ]
+        uploaded_provider_file_ids = merge_provider_file_ids(
+            collect_provider_file_ids(message) for message in messages
+        )
+        persist_provider_attachments(
+            thread_id=thread_id,
+            messages=messages,
+            members=members,
+        )
+
+    attachment_provider: str | None = None
+    if members and all(member.provider == "gigachat" for member in members):
+        attachment_provider = "gigachat"
+    elif any(member.provider == "openai" for member in members):
+        attachment_provider = "openai"
+
     formatted_messages = [
         # Current only one message is passed - the user's query.
-        chat_message_to_human_message(message)
+        chat_message_to_human_message(
+            message,
+            attachment_provider=attachment_provider,
+        )
         if message.type == "human"
         else AIMessage(content=_chat_content_to_langchain_content(message.content))
         for message in messages
@@ -592,6 +826,7 @@ async def generator(
                     "team": teams[team_leader],
                     "main_task": formatted_messages,
                     "all_messages": formatted_messages,
+                    "uploaded_provider_file_ids": uploaded_provider_file_ids,
                 }
             else:
                 member_dict = convert_sequential_team_to_dict(members)
@@ -611,7 +846,9 @@ async def generator(
                     ),
                     "messages": [],
                     "next": first_member.name,
+                    "main_task": formatted_messages,
                     "all_messages": formatted_messages,
+                    "uploaded_provider_file_ids": uploaded_provider_file_ids,
                 }
 
             config: RunnableConfig = {

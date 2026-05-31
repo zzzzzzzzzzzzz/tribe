@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.security import APIKeyHeader
-from sqlmodel import col, func, select
+from sqlmodel import col, func, or_, select
 
 from app.api.deps import (
     CurrentTeam,
@@ -19,14 +19,21 @@ from app.models import (
     ChatContentTextPart,
     Member,
     Message,
+    Skill,
     Team,
     TeamChat,
     TeamChatPublic,
     TeamCreate,
+    TeamExport,
+    TeamExportMember,
+    TeamExportSkillRef,
+    TeamExportUploadRef,
     TeamOut,
     TeamsOut,
     TeamUpdate,
     Thread,
+    Upload,
+    User,
 )
 
 router = APIRouter()
@@ -68,6 +75,84 @@ def _extract_text_content(
             if isinstance(text, str):
                 text_parts.append(text)
     return "\n".join(text_parts)
+
+
+def _unique_team_name(session: SessionDep, name: str) -> str:
+    existing = session.exec(select(Team).where(Team.name == name)).first()
+    if not existing:
+        return name
+
+    base = name[:55].rstrip() or "Imported team"
+    for index in range(2, 1000):
+        candidate = f"{base} {index}"
+        if not session.exec(select(Team).where(Team.name == candidate)).first():
+            return candidate
+
+    raise HTTPException(status_code=400, detail="Unable to generate unique team name")
+
+
+def _can_read_team(current_user: User, team: Team) -> bool:
+    return current_user.is_superuser or team.owner_id == current_user.id
+
+
+def _skill_ref(skill: Skill) -> TeamExportSkillRef:
+    return TeamExportSkillRef(
+        name=skill.name,
+        description=skill.description,
+        managed=skill.managed,
+        tool_definition=skill.tool_definition,
+    )
+
+
+def _upload_ref(upload: Upload) -> TeamExportUploadRef:
+    return TeamExportUploadRef(name=upload.name, description=upload.description)
+
+
+def _member_export(member: Member) -> TeamExportMember:
+    return TeamExportMember(
+        id=member.id or 0,
+        name=member.name,
+        backstory=member.backstory,
+        role=member.role,
+        type=member.type,
+        owner_of=member.owner_of,
+        position_x=member.position_x,
+        position_y=member.position_y,
+        source=member.source,
+        provider=member.provider,
+        model=member.model,
+        temperature=member.temperature,
+        interrupt=member.interrupt,
+        base_url=member.base_url,
+        skills=[_skill_ref(skill) for skill in member.skills],
+        uploads=[_upload_ref(upload) for upload in member.uploads],
+    )
+
+
+def _accessible_skills_by_name(
+    session: SessionDep, current_user: User
+) -> dict[str, Skill]:
+    if current_user.is_superuser:
+        skills = session.exec(select(Skill)).all()
+    else:
+        skills = session.exec(
+            select(Skill).where(
+                or_(Skill.managed == True, Skill.owner_id == current_user.id)  # noqa: E712
+            )
+        ).all()
+    return {skill.name: skill for skill in skills}
+
+
+def _accessible_uploads_by_name(
+    session: SessionDep, current_user: User
+) -> dict[str, Upload]:
+    if current_user.is_superuser:
+        uploads = session.exec(select(Upload)).all()
+    else:
+        uploads = session.exec(
+            select(Upload).where(Upload.owner_id == current_user.id)
+        ).all()
+    return {upload.name: upload for upload in uploads}
 
 
 @router.get("/", response_model=TeamsOut)
@@ -156,6 +241,103 @@ def create_team(
     session.commit()
 
     return team
+
+
+@router.post("/import", response_model=TeamOut)
+def import_team(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    team_export: TeamExport,
+) -> Any:
+    """
+    Import a team definition and create a new team.
+    Missing skills and uploads are ignored.
+    """
+    team = Team(
+        name=_unique_team_name(session, team_export.name),
+        description=team_export.description,
+        workflow=team_export.workflow,
+        owner_id=current_user.id,
+    )
+    session.add(team)
+    session.commit()
+    session.refresh(team)
+
+    skills_by_name = _accessible_skills_by_name(session, current_user)
+    uploads_by_name = _accessible_uploads_by_name(session, current_user)
+    member_id_map: dict[int, int] = {}
+    imported_members: list[tuple[Member, TeamExportMember]] = []
+
+    for member_export in team_export.members:
+        member = Member(
+            name=member_export.name,
+            backstory=member_export.backstory,
+            role=member_export.role,
+            type=member_export.type,
+            owner_of=None,
+            position_x=member_export.position_x,
+            position_y=member_export.position_y,
+            source=None,
+            provider=member_export.provider,
+            model=member_export.model,
+            temperature=member_export.temperature,
+            interrupt=member_export.interrupt,
+            base_url=member_export.base_url,
+            belongs_to=team.id,
+        )
+        member.skills = [
+            skills_by_name[skill.name]
+            for skill in member_export.skills
+            if skill.name in skills_by_name
+        ]
+        member.uploads = [
+            uploads_by_name[upload.name]
+            for upload in member_export.uploads
+            if upload.name in uploads_by_name
+        ]
+        session.add(member)
+        session.commit()
+        session.refresh(member)
+        if member.id is not None:
+            member_id_map[member_export.id] = member.id
+        imported_members.append((member, member_export))
+
+    for member, member_export in imported_members:
+        if member_export.source is not None:
+            member.source = member_id_map.get(member_export.source)
+        if member_export.owner_of == team_export.id:
+            member.owner_of = team.id
+        elif member_export.owner_of is not None:
+            member.owner_of = member_id_map.get(member_export.owner_of)
+        session.add(member)
+
+    session.commit()
+    session.refresh(team)
+    return team
+
+
+@router.get("/{id}/export", response_model=TeamExport)
+def export_team(session: SessionDep, current_user: CurrentUser, id: int) -> Any:
+    """
+    Export a team definition including members and graph settings.
+    """
+    team = session.get(Team, id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    if not _can_read_team(current_user, team):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    return TeamExport(
+        id=team.id,
+        name=team.name,
+        description=team.description,
+        workflow=team.workflow,
+        members=[
+            _member_export(member)
+            for member in sorted(team.members, key=lambda item: item.id or 0)
+        ],
+    )
 
 
 @router.put("/{id}", response_model=TeamOut)

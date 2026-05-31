@@ -1,3 +1,5 @@
+import base64
+import mimetypes
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
@@ -22,6 +24,23 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.graph.messages import ChatResponse
+
+SUPPORTED_IMAGE_ATTACHMENT_TYPES = {
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+SUPPORTED_FILE_ATTACHMENT_TYPES = {
+    "application/json",
+    "application/pdf",
+    "text/csv",
+    "text/markdown",
+    "text/plain",
+}
+SUPPORTED_ATTACHMENT_TYPES = (
+    SUPPORTED_IMAGE_ATTACHMENT_TYPES | SUPPORTED_FILE_ATTACHMENT_TYPES
+)
 
 
 class Message(SQLModel):
@@ -133,6 +152,7 @@ class ChatContentTextPart(BaseModel):
 
 class ChatContentImageData(BaseModel):
     url: str
+    provider_file_ids: dict[str, str] | None = None
 
 
 class ChatContentImagePart(BaseModel):
@@ -142,6 +162,7 @@ class ChatContentImagePart(BaseModel):
 
 class ChatContentFileData(BaseModel):
     file_id: str | None = None
+    provider_file_ids: dict[str, str] | None = None
     filename: str | None = None
     file_data: str | None = None
 
@@ -156,6 +177,77 @@ class ChatMessage(BaseModel):
     content: str | list[
         ChatContentTextPart | ChatContentImagePart | ChatContentFilePart
     ]
+
+    @staticmethod
+    def _data_url_size_bytes(data_url: str) -> int | None:
+        if not data_url.startswith("data:"):
+            return None
+        try:
+            payload = data_url.split(",", 1)[1]
+        except IndexError:
+            return None
+        try:
+            return len(base64.b64decode(payload, validate=True))
+        except Exception:
+            return None
+
+    @staticmethod
+    def _data_url_content_type(data_url: str) -> str | None:
+        if not data_url.startswith("data:"):
+            return None
+        try:
+            metadata = data_url.split(",", 1)[0]
+        except IndexError:
+            return None
+        if ";base64" not in metadata:
+            return None
+        return metadata.split(":", 1)[1].split(";", 1)[0]
+
+    @model_validator(mode="after")
+    def validate_attachments(self) -> "ChatMessage":
+        if isinstance(self.content, str):
+            return self
+
+        attachments = [
+            part for part in self.content if part.type in {"file", "image_url"}
+        ]
+        if len(attachments) > 5:
+            raise ValueError("No more than 5 attachments are allowed per message")
+
+        max_size_bytes = 20 * 1024 * 1024
+        for part in self.content:
+            file_payload: str | None = None
+            filename: str | None = None
+            image_part = False
+            if isinstance(part, ChatContentFilePart):
+                file_payload = part.file.file_data
+                filename = part.file.filename
+            if isinstance(part, ChatContentImagePart):
+                file_payload = part.image_url.url
+                image_part = True
+            if not isinstance(file_payload, str):
+                continue
+
+            file_size = self._data_url_size_bytes(file_payload)
+            if file_size is not None and file_size > max_size_bytes:
+                raise ValueError("Attachment size must not exceed 20MB")
+
+            content_type = self._data_url_content_type(file_payload)
+            guessed_type = mimetypes.guess_type(filename or "")[0]
+            effective_type = content_type or guessed_type
+            if effective_type and effective_type not in SUPPORTED_ATTACHMENT_TYPES:
+                raise ValueError(
+                    "Unsupported attachment type. Supported formats are: "
+                    "png, jpg, jpeg, gif, webp, txt, md, csv, json, pdf"
+                )
+            if (
+                image_part
+                and effective_type
+                and effective_type not in SUPPORTED_IMAGE_ATTACHMENT_TYPES
+            ):
+                raise ValueError("Image attachments must use a supported image format")
+
+        return self
 
 
 class InterruptDecision(Enum):
@@ -215,6 +307,46 @@ class TeamsOut(SQLModel):
     count: int
 
 
+class TeamExportSkillRef(SQLModel):
+    name: str
+    description: str | None = None
+    managed: bool = False
+    tool_definition: dict[str, Any] | None = None
+
+
+class TeamExportUploadRef(SQLModel):
+    name: str
+    description: str | None = None
+
+
+class TeamExportMember(SQLModel):
+    id: int
+    name: str
+    backstory: str | None = None
+    role: str
+    type: str
+    owner_of: int | None = None
+    position_x: float
+    position_y: float
+    source: int | None = None
+    provider: str = "openai"
+    model: str = "gpt-4o-mini"
+    temperature: float = 0.7
+    interrupt: bool = False
+    base_url: str | None = None
+    skills: list[TeamExportSkillRef] = PydanticField(default_factory=list)
+    uploads: list[TeamExportUploadRef] = PydanticField(default_factory=list)
+
+
+class TeamExport(SQLModel):
+    export_version: int = 1
+    id: int | None = None
+    name: str = PydanticField(pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$")
+    description: str | None = None
+    workflow: str = PydanticField(pattern=r"^(hierarchical|sequential)$")
+    members: list[TeamExportMember] = PydanticField(default_factory=list)
+
+
 # =============Threads===================
 
 
@@ -257,6 +389,41 @@ class Thread(ThreadBase, table=True):
     )
     writes: list["Write"] = Relationship(
         back_populates="thread", sa_relationship_kwargs={"cascade": "delete"}
+    )
+    provider_attachments: list["ProviderAttachment"] = Relationship(
+        back_populates="thread", sa_relationship_kwargs={"cascade": "delete"}
+    )
+
+
+class ProviderAttachment(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "file_id",
+            name="unique_provider_attachment_file",
+        ),
+    )
+    id: int | None = Field(default=None, primary_key=True)
+    thread_id: UUID = Field(foreign_key="thread.id", nullable=False)
+    thread: Thread | None = Relationship(back_populates="provider_attachments")
+    provider: str
+    file_id: str
+    filename: str | None = None
+    content_type: str | None = None
+    base_url: str | None = None
+    created_at: datetime | None = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            default=func.now(),
+            server_default=func.now(),
+        )
+    )
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    deleted_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
 
 
@@ -403,6 +570,14 @@ class SkillsOut(SQLModel):
 
 class SkillOut(SkillBase):
     id: int
+
+
+class SkillExport(SQLModel):
+    export_version: int = 1
+    name: str
+    description: str
+    managed: bool = False
+    tool_definition: dict[str, Any]
 
 
 class ToolDefinitionValidate(SQLModel):

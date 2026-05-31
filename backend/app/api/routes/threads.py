@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import col, func, select
 
 from app.api.deps import CurrentTeam, CurrentUser, SessionDep
+from app.core.graph.attachments import delete_provider_file
 from app.core.graph.checkpoint.utils import (
     convert_checkpoint_tuple_to_messages,
     get_checkpoint_tuples,
@@ -246,6 +247,18 @@ def delete_thread(
 
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
+
+    for attachment in thread.provider_attachments:
+        if attachment.deleted_at is not None:
+            continue
+        try:
+            delete_provider_file(
+                provider_name=attachment.provider,  # type: ignore[arg-type]
+                file_id=attachment.file_id,
+                base_url=attachment.base_url,
+            )
+        except Exception:
+            pass
 
     for checkpoint in thread.checkpoints:
         session.delete(checkpoint)

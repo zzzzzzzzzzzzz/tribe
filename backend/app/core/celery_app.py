@@ -11,4 +11,10 @@ celery_app = Celery(
 
 celery_app.conf.update(
     result_expires=3600,
+    beat_schedule={
+        "cleanup-expired-provider-attachments-daily": {
+            "task": "app.tasks.tasks.cleanup_expired_provider_attachments",
+            "schedule": 60 * 60 * 24,
+        },
+    },
 )
