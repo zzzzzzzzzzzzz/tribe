@@ -97,11 +97,16 @@ def test_chat_message_to_human_message_with_multipart_content() -> None:
         "type": "input_image",
         "image_url": "data:image/png;base64,AAA",
     }
-    assert result.content[2] == {
+    assert result.content[2] == {"type": "input_text", "text": "[Attached image]"}
+    assert result.content[3] == {
         "type": "input_file",
         "file_id": "file-123",
     }
-    assert len(result.content) == 3
+    assert result.content[4] == {
+        "type": "input_text",
+        "text": "[Attached file: report.txt]\nhello from attachment",
+    }
+    assert len(result.content) == 5
     assert result.additional_kwargs == {}
 
 
@@ -131,7 +136,12 @@ def test_chat_message_to_human_message_openai_uses_data_url_fallback_without_fil
 
     assert isinstance(result.content, list)
     assert result.content[0] == {"type": "input_image", "image_url": image_data}
-    assert len(result.content) == 1
+    assert result.content[1] == {"type": "input_text", "text": "[Attached image]"}
+    assert result.content[2] == {
+        "type": "input_text",
+        "text": "[Attached file: contract.pdf]",
+    }
+    assert len(result.content) == 3
 
 
 def test_chat_message_attachment_count_limit() -> None:
@@ -166,6 +176,37 @@ def test_chat_message_attachment_size_limit() -> None:
         )
 
 
+def test_chat_message_rejects_unsupported_attachment_type() -> None:
+    with pytest.raises(ValueError, match="Unsupported attachment type"):
+        ChatMessage(
+            type=ChatMessageType.human,
+            content=[
+                ChatContentFilePart(
+                    type="file",
+                    file=ChatContentFileData(
+                        filename="archive.zip",
+                        file_data=_base64_data_url(b"zip", "application/zip"),
+                    ),
+                )
+            ],
+        )
+
+
+def test_chat_message_rejects_non_image_image_part() -> None:
+    with pytest.raises(ValueError, match="Image attachments"):
+        ChatMessage(
+            type=ChatMessageType.human,
+            content=[
+                ChatContentImagePart(
+                    type="image_url",
+                    image_url=ChatContentImageData(
+                        url=_base64_data_url(b"hello", "text/plain"),
+                    ),
+                )
+            ],
+        )
+
+
 def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() -> None:
     message = ChatMessage(
         type=ChatMessageType.human,
@@ -188,6 +229,31 @@ def test_chat_message_to_human_message_includes_uploaded_image_attachment_ids() 
         "type": "input_image",
         "file_id": "image-file-123",
     }
+    assert result.content[2] == {"type": "input_text", "text": "[Attached image]"}
+    assert result.additional_kwargs == {}
+
+
+def test_chat_message_to_human_message_openai_treats_file_part_image_as_image() -> None:
+    message = ChatMessage(
+        type=ChatMessageType.human,
+        content=[
+            ChatContentFilePart(
+                type="file",
+                file=ChatContentFileData(
+                    filename="uploaded.txt",
+                    file_data=_base64_data_url(b"image", "image/png"),
+                    provider_file_ids={"openai": "openai-image-id"},
+                ),
+            ),
+        ],
+    )
+
+    result = chat_message_to_human_message(message, attachment_provider="openai")
+
+    assert result.content == [
+        {"type": "input_image", "file_id": "openai-image-id"},
+        {"type": "input_text", "text": "[Attached image]"},
+    ]
     assert result.additional_kwargs == {}
 
 
@@ -226,6 +292,7 @@ def test_chat_message_to_human_message_uses_gigachat_provider_attachment_ids() -
     assert isinstance(image_part, dict)
     assert image_part["image_url"]["giga_id"] == "g-image-id"
     assert "provider_file_ids" not in image_part["image_url"]
+    assert {"type": "text", "text": "[Attached image]"} in result.content
 
 
 def test_chat_message_to_human_message_openai_uses_uploaded_file_ids() -> None:
@@ -254,6 +321,8 @@ def test_chat_message_to_human_message_openai_uses_uploaded_file_ids() -> None:
 
     assert result.content == [
         {"type": "input_file", "file_id": "openai-file-id"},
+        {"type": "input_text", "text": "[Attached file: notes.txt]\nhello"},
         {"type": "input_image", "file_id": "openai-image-id"},
+        {"type": "input_text", "text": "[Attached image]"},
     ]
     assert result.additional_kwargs == {}

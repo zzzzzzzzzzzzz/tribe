@@ -57,17 +57,10 @@ import Markdown from "../Markdown/Markdown"
 
 // possible message types: "ai" | "human" | "tool" | "error" | "interrupt"
 
-const IMAGE_EXTENSIONS = [
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".webp",
-  ".bmp",
-  ".svg",
-  ".heic",
-  ".heif",
-]
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+const FILE_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".pdf"]
+const SUPPORTED_EXTENSIONS = [...IMAGE_EXTENSIONS, ...FILE_EXTENSIONS]
+const SUPPORTED_ATTACHMENT_ACCEPT = SUPPORTED_EXTENSIONS.join(",")
 
 const MAX_ATTACHMENTS = 5
 const MAX_ATTACHMENT_SIZE_BYTES = 20 * 1024 * 1024
@@ -470,6 +463,31 @@ const ChatTeam = () => {
     )
   }
 
+  const isSupportedAttachment = (file: File) => {
+    if (
+      file.type.startsWith("image/") &&
+      ["image/gif", "image/jpeg", "image/png", "image/webp"].includes(file.type)
+    ) {
+      return true
+    }
+    if (
+      [
+        "application/json",
+        "application/pdf",
+        "text/csv",
+        "text/markdown",
+        "text/plain",
+      ].includes(file.type)
+    ) {
+      return true
+    }
+
+    const fileName = file.name.toLowerCase()
+    return SUPPORTED_EXTENSIONS.some((extension) =>
+      fileName.endsWith(extension),
+    )
+  }
+
   const buildContent = async () => {
     const content: ChatMessage["content"] = []
     if (input.trim().length) {
@@ -592,6 +610,15 @@ const ChatTeam = () => {
           continue
         }
 
+        if (!isSupportedAttachment(file)) {
+          showToast(
+            "Неподдерживаемый формат",
+            `Файл "${file.name}" был пропущен. Поддерживаются: png, jpg, jpeg, gif, webp, txt, md, csv, json, pdf.`,
+            "error",
+          )
+          continue
+        }
+
         nextFiles.push(file)
       }
       return nextFiles
@@ -623,35 +650,25 @@ const ChatTeam = () => {
 
   return (
     <Box>
-      <InputGroup as="form" onSubmit={onSubmit}>
-        <Input
-          type="text"
-          placeholder="Задайте вопрос вашей команде"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <Button
-          as="label"
-          htmlFor="chat-files"
-          mb={0}
-          ml={2}
-          size="sm"
-          variant="outline"
-          leftIcon={<IoAttachSharp />}
-          isDisabled={files.length >= MAX_ATTACHMENTS}
-        >
-          Файлы
-        </Button>
-        <Input
-          id="chat-files"
-          ref={fileInputRef}
-          type="file"
-          multiple
-          display="none"
-          disabled={files.length >= MAX_ATTACHMENTS}
-          onChange={handleFilesSelect}
-        />
-        <InputRightElement>
+      <Box as="form" onSubmit={onSubmit}>
+        <HStack width="full" spacing={2} align="stretch">
+          <Input
+            type="text"
+            placeholder="Задайте вопрос вашей команде"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <Button
+            as="label"
+            htmlFor="chat-files"
+            mb={0}
+            minW="6rem"
+            variant="outline"
+            leftIcon={<IoAttachSharp />}
+            isDisabled={files.length >= MAX_ATTACHMENTS || isStreaming}
+          >
+            Файлы
+          </Button>
           <IconButton
             type="submit"
             icon={<VscSend />}
@@ -659,8 +676,18 @@ const ChatTeam = () => {
             isLoading={isStreaming}
             isDisabled={!input.trim().length && files.length === 0}
           />
-        </InputRightElement>
-      </InputGroup>
+        </HStack>
+        <Input
+          id="chat-files"
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={SUPPORTED_ATTACHMENT_ACCEPT}
+          display="none"
+          disabled={files.length >= MAX_ATTACHMENTS}
+          onChange={handleFilesSelect}
+        />
+      </Box>
       {files.length > 0 && (
         <Box
           mt={2}

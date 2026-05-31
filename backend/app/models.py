@@ -1,4 +1,5 @@
 import base64
+import mimetypes
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
@@ -23,6 +24,23 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.graph.messages import ChatResponse
+
+SUPPORTED_IMAGE_ATTACHMENT_TYPES = {
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+SUPPORTED_FILE_ATTACHMENT_TYPES = {
+    "application/json",
+    "application/pdf",
+    "text/csv",
+    "text/markdown",
+    "text/plain",
+}
+SUPPORTED_ATTACHMENT_TYPES = (
+    SUPPORTED_IMAGE_ATTACHMENT_TYPES | SUPPORTED_FILE_ATTACHMENT_TYPES
+)
 
 
 class Message(SQLModel):
@@ -173,6 +191,18 @@ class ChatMessage(BaseModel):
         except Exception:
             return None
 
+    @staticmethod
+    def _data_url_content_type(data_url: str) -> str | None:
+        if not data_url.startswith("data:"):
+            return None
+        try:
+            metadata = data_url.split(",", 1)[0]
+        except IndexError:
+            return None
+        if ";base64" not in metadata:
+            return None
+        return metadata.split(":", 1)[1].split(";", 1)[0]
+
     @model_validator(mode="after")
     def validate_attachments(self) -> "ChatMessage":
         if isinstance(self.content, str):
@@ -187,16 +217,35 @@ class ChatMessage(BaseModel):
         max_size_bytes = 20 * 1024 * 1024
         for part in self.content:
             file_payload: str | None = None
+            filename: str | None = None
+            image_part = False
             if isinstance(part, ChatContentFilePart):
                 file_payload = part.file.file_data
+                filename = part.file.filename
             if isinstance(part, ChatContentImagePart):
                 file_payload = part.image_url.url
+                image_part = True
             if not isinstance(file_payload, str):
                 continue
 
             file_size = self._data_url_size_bytes(file_payload)
             if file_size is not None and file_size > max_size_bytes:
                 raise ValueError("Attachment size must not exceed 20MB")
+
+            content_type = self._data_url_content_type(file_payload)
+            guessed_type = mimetypes.guess_type(filename or "")[0]
+            effective_type = content_type or guessed_type
+            if effective_type and effective_type not in SUPPORTED_ATTACHMENT_TYPES:
+                raise ValueError(
+                    "Unsupported attachment type. Supported formats are: "
+                    "png, jpg, jpeg, gif, webp, txt, md, csv, json, pdf"
+                )
+            if (
+                image_part
+                and effective_type
+                and effective_type not in SUPPORTED_IMAGE_ATTACHMENT_TYPES
+            ):
+                raise ValueError("Image attachments must use a supported image format")
 
         return self
 
@@ -300,6 +349,41 @@ class Thread(ThreadBase, table=True):
     )
     writes: list["Write"] = Relationship(
         back_populates="thread", sa_relationship_kwargs={"cascade": "delete"}
+    )
+    provider_attachments: list["ProviderAttachment"] = Relationship(
+        back_populates="thread", sa_relationship_kwargs={"cascade": "delete"}
+    )
+
+
+class ProviderAttachment(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "file_id",
+            name="unique_provider_attachment_file",
+        ),
+    )
+    id: int | None = Field(default=None, primary_key=True)
+    thread_id: UUID = Field(foreign_key="thread.id", nullable=False)
+    thread: Thread | None = Relationship(back_populates="provider_attachments")
+    provider: str
+    file_id: str
+    filename: str | None = None
+    content_type: str | None = None
+    base_url: str | None = None
+    created_at: datetime | None = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            default=func.now(),
+            server_default=func.now(),
+        )
+    )
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    deleted_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
 
 

@@ -1,11 +1,14 @@
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.celery_app import celery_app
 from app.core.db import engine
+from app.core.graph.attachments import delete_provider_file
 from app.core.graph.rag.qdrant import QdrantStore
-from app.models import Upload, UploadStatus
+from app.models import ProviderAttachment, Upload, UploadStatus
 
 
 @celery_app.task
@@ -68,3 +71,34 @@ def remove_upload(upload_id: int, user_id: int) -> None:
             session.commit()
         except Exception as e:
             print(f"remove_upload failed: {e}")
+
+
+@celery_app.task
+def cleanup_expired_provider_attachments(limit: int = 100) -> None:
+    now = datetime.now(ZoneInfo("UTC"))
+    with Session(engine) as session:
+        attachments = session.exec(
+            select(ProviderAttachment)
+            .where(
+                ProviderAttachment.deleted_at.is_(None),  # type: ignore[attr-defined]
+                ProviderAttachment.expires_at <= now,
+            )
+            .limit(limit)
+        ).all()
+
+        for attachment in attachments:
+            try:
+                delete_provider_file(
+                    provider_name=attachment.provider,  # type: ignore[arg-type]
+                    file_id=attachment.file_id,
+                    base_url=attachment.base_url,
+                )
+                attachment.deleted_at = now
+                session.add(attachment)
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                print(
+                    "cleanup_expired_provider_attachments failed "
+                    f"for {attachment.provider}:{attachment.file_id}: {e}"
+                )

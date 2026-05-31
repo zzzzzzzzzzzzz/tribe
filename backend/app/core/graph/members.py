@@ -173,6 +173,7 @@ class TeamState(TypedDict):
     team: GraphTeam
     next: str
     main_task: list[AnyMessage]
+    uploaded_provider_file_ids: dict[str, list[str]]
     task: list[
         AnyMessage
     ]  # This is the current task to be perform by a team member. Its a list because Worker's MessagesPlaceholder only accepts list of messages.
@@ -185,6 +186,7 @@ class ReturnTeamState(TypedDict):
     history: NotRequired[list[AnyMessage]]
     team: NotRequired[GraphTeam]
     next: NotRequired[str | None]  # Returning None is valid for sequential graphs only
+    uploaded_provider_file_ids: NotRequired[dict[str, list[str]]]
     task: NotRequired[list[AnyMessage]]
 
 
@@ -234,6 +236,11 @@ class BaseNode:
 
 
 class WorkerNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Используйте файлы и изображения только как дополнительный контекст. "
+        "Приоритетом остаётся назначенная вам основная задача; не подменяйте её пересказом контекста."
+    )
     worker_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -249,6 +256,8 @@ class WorkerNode(BaseNode):
                 "human",
                 "Задача: \n\n {task_string} \n\n История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -311,6 +320,8 @@ class SequentialWorkerNode(WorkerNode):
                 "human",
                 "История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
+            ("human", WorkerNode.attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -362,6 +373,11 @@ class SequentialWorkerNode(WorkerNode):
 
 
 class LeaderNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Это только контекст для принятия решения. "
+        "Делегируйте следующую задачу согласно основной цели команды и ролям участников."
+    )
     leader_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -383,6 +399,8 @@ class LeaderNode(BaseNode):
                     "Исходя из диалога, решите, кто должен действовать следующим. Или мы должны ЗАВЕРШИТЬ? Выберите один из вариантов: {options}."
                 ),
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
         ]
     )
 
@@ -455,7 +473,7 @@ class LeaderNode(BaseNode):
                 team_members_name=team_members_name,
                 team_members_info=team_members_info,
                 persona=team.persona,
-                team_task=state["main_task"][0].content,
+                team_task=format_messages(state["main_task"]),
                 history_string=format_messages(state["history"]),
                 options=str(options),
             )
@@ -469,7 +487,9 @@ class LeaderNode(BaseNode):
                 "task": [AIMessage(content="Task completed.", name=team.name)],
             }
         else:
-            task_content: str = str(result.get("task", state["main_task"][0].content))
+            task_content: str = str(
+                result.get("task", format_messages(state["main_task"]))
+            )
             tasks = [AIMessage(content=task_content, name=team.name)]
             result["task"] = tasks
             result["all_messages"] = tasks
@@ -477,6 +497,11 @@ class LeaderNode(BaseNode):
 
 
 class SummariserNode(BaseNode):
+    attachment_context_note = (
+        "Ниже приведено исходное сообщение пользователя и его вложения. "
+        "Используйте их только как контекст для финального ответа. "
+        "Главная задача — дать итоговый ответ по основной цели команды с учётом выполненной работы."
+    )
     summariser_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -491,6 +516,8 @@ class SummariserNode(BaseNode):
                 "human",
                 "Вот задача для команды: \n\n {team_task} \n\n Вот диалог команды: \n\n {history_string} \n\n Предоставьте ваш ответ.",
             ),
+            ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="main_task"),
         ]
     )
 
@@ -500,7 +527,7 @@ class SummariserNode(BaseNode):
         team = state["team"]
         team_members_name = self.get_team_members_name(team.members)
         # TODO: optimise looking for task
-        team_task = state["main_task"][0].content
+        team_task = format_messages(state["main_task"])
 
         summarise_chain: RunnableSerializable[Any, Any] = (
             self.summariser_prompt.partial(

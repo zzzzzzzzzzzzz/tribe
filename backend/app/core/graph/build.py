@@ -26,7 +26,12 @@ from psycopg import AsyncConnection
 from psycopg.rows import DictRow, dict_row
 
 from app.core.config import settings
-from app.core.graph.attachments import upload_attachments_for_thread
+from app.core.graph.attachments import (
+    collect_provider_file_ids,
+    merge_provider_file_ids,
+    persist_provider_attachments,
+    upload_attachments_for_thread,
+)
 from app.core.graph.members import (
     GraphLeader,
     GraphMember,
@@ -117,6 +122,23 @@ def _file_data_to_text_part(
     }
 
 
+def _attachment_summary_text(*, filename: str | None, kind: str) -> str:
+    if kind == "image":
+        return "[Attached image]"
+    title = filename or "attachment"
+    return f"[Attached file: {title}]"
+
+
+def _data_url_is_image(data_url: str | None) -> bool:
+    if not isinstance(data_url, str) or not data_url.startswith("data:"):
+        return False
+    try:
+        metadata = data_url.split(",", 1)[0]
+    except ValueError:
+        return False
+    return metadata.startswith("data:image/")
+
+
 def chat_message_to_human_message(
     message: ChatMessage,
     *,
@@ -153,8 +175,36 @@ def chat_message_to_human_message(
 
             if attachment_provider == "openai":
                 if has_native_file_reference:
+                    if _data_url_is_image(part.file.file_data):
+                        converted_content.append(
+                            {"type": "input_image", "file_id": cast(str, file_id)}
+                        )
+                        converted_content.append(
+                            {
+                                "type": "input_text",
+                                "text": _attachment_summary_text(
+                                    filename=part.file.filename, kind="image"
+                                ),
+                            }
+                        )
+                        continue
                     converted_content.append(
                         {"type": "input_file", "file_id": cast(str, file_id)}
+                    )
+                    file_text_part = _file_data_to_text_part(
+                        part.file.file_data or "", part.file.filename
+                    )
+                    converted_content.append(
+                        {
+                            "type": "input_text",
+                            "text": (
+                                file_text_part["text"]
+                                if file_text_part
+                                else _attachment_summary_text(
+                                    filename=part.file.filename, kind="file"
+                                )
+                            ),
+                        }
                     )
                 else:
                     file_text_part = _file_data_to_text_part(
@@ -163,6 +213,15 @@ def chat_message_to_human_message(
                     if file_text_part:
                         converted_content.append(
                             {"type": "input_text", "text": file_text_part["text"]}
+                        )
+                    else:
+                        converted_content.append(
+                            {
+                                "type": "input_text",
+                                "text": _attachment_summary_text(
+                                    filename=part.file.filename, kind="file"
+                                ),
+                            }
                         )
                 continue
 
@@ -173,12 +232,20 @@ def chat_message_to_human_message(
                 file_payload["file_id"] = file_id
             converted_content.append({"type": "file", "file": file_payload})
 
-            if not has_native_file_reference:
-                file_text_part = _file_data_to_text_part(
-                    part.file.file_data or "", part.file.filename
+            file_text_part = _file_data_to_text_part(
+                part.file.file_data or "", part.file.filename
+            )
+            if file_text_part:
+                converted_content.append(file_text_part)
+            else:
+                converted_content.append(
+                    {
+                        "type": "text",
+                        "text": _attachment_summary_text(
+                            filename=part.file.filename, kind="file"
+                        ),
+                    }
                 )
-                if file_text_part:
-                    converted_content.append(file_text_part)
             continue
 
         if isinstance(part, ChatContentImagePart):
@@ -204,6 +271,12 @@ def chat_message_to_human_message(
                             "image_url": part.image_url.url,
                         }
                     )
+                converted_content.append(
+                    {
+                        "type": "input_text",
+                        "text": _attachment_summary_text(filename=None, kind="image"),
+                    }
+                )
                 continue
 
             image_payload = part.image_url.model_dump(
@@ -212,6 +285,12 @@ def chat_message_to_human_message(
             if attachment_provider == "gigachat" and isinstance(image_file_id, str):
                 image_payload["giga_id"] = image_file_id
             converted_content.append({"type": "image_url", "image_url": image_payload})
+            converted_content.append(
+                {
+                    "type": "text",
+                    "text": _attachment_summary_text(filename=None, kind="image"),
+                }
+            )
 
     kwargs: dict[str, Any] = {}
     if attachments:
@@ -695,11 +774,20 @@ async def generator(
 ) -> AsyncGenerator[Any, Any]:
     """Create the graph and stream responses as JSON."""
 
+    uploaded_provider_file_ids = {"openai": [], "gigachat": []}
     if messages:
         messages = [
             upload_attachments_for_thread(message=message, members=members)
             for message in messages
         ]
+        uploaded_provider_file_ids = merge_provider_file_ids(
+            collect_provider_file_ids(message) for message in messages
+        )
+        persist_provider_attachments(
+            thread_id=thread_id,
+            messages=messages,
+            members=members,
+        )
 
     attachment_provider: str | None = None
     if members and all(member.provider == "gigachat" for member in members):
@@ -737,6 +825,7 @@ async def generator(
                     "team": teams[team_leader],
                     "main_task": formatted_messages,
                     "all_messages": formatted_messages,
+                    "uploaded_provider_file_ids": uploaded_provider_file_ids,
                 }
             else:
                 member_dict = convert_sequential_team_to_dict(members)
@@ -756,7 +845,9 @@ async def generator(
                     ),
                     "messages": [],
                     "next": first_member.name,
+                    "main_task": formatted_messages,
                     "all_messages": formatted_messages,
+                    "uploaded_provider_file_ids": uploaded_provider_file_ids,
                 }
 
             config: RunnableConfig = {
