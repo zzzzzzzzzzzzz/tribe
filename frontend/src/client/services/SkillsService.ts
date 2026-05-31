@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { SkillCreate } from '../models/SkillCreate';
+import type { SkillExport } from '../models/SkillExport';
 import type { SkillOut } from '../models/SkillOut';
 import type { SkillsOut } from '../models/SkillsOut';
 import type { SkillUpdate } from '../models/SkillUpdate';
@@ -63,6 +64,28 @@ export class SkillsService {
     }
 
     /**
+     * Import Skill
+     * Import a skill definition and create a new user-managed skill.
+     * @returns SkillOut Successful Response
+     * @throws ApiError
+     */
+    public static importSkill({
+        requestBody,
+    }: {
+        requestBody: SkillExport,
+    }): CancelablePromise<SkillOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/skills/import',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Read Skill
      * Get skill by ID.
      * @returns SkillOut Successful Response
@@ -76,6 +99,29 @@ export class SkillsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/skills/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Export Skill
+     * Export a skill definition.
+     * @returns SkillExport Successful Response
+     * @throws ApiError
+     */
+    public static exportSkill({
+        id,
+    }: {
+        id: number,
+    }): CancelablePromise<SkillExport> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/skills/{id}/export',
             path: {
                 'id': id,
             },

@@ -105,6 +105,45 @@ def test_create_skill(
     assert data["tool_definition"] == skill_data["tool_definition"]
 
 
+def test_export_skill(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    skill = create_skill(db, 1)
+    response = client.get(
+        f"{settings.API_V1_STR}/skills/{skill.id}/export",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == skill.name
+    assert data["description"] == skill.description
+    assert data["managed"] == skill.managed
+    assert data["tool_definition"] == skill.tool_definition
+
+
+def test_import_skill(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    skill_export = {
+        "export_version": 1,
+        "name": random_lower_string(),
+        "description": random_lower_string(),
+        "managed": True,
+        "tool_definition": valid_tool_definition,
+    }
+    response = client.post(
+        f"{settings.API_V1_STR}/skills/import",
+        json=skill_export,
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == skill_export["name"]
+    assert data["description"] == skill_export["description"]
+    assert data["managed"] is False
+    assert data["tool_definition"] == skill_export["tool_definition"]
+
+
 def test_create_skill_with_invalid_tool_definition(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:

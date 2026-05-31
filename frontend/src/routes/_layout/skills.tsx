@@ -1,20 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router"
 import {
-  Flex,
-  Spinner,
+  Box,
   Container,
+  Flex,
   Heading,
-  TableContainer,
+  Spinner,
   Table,
-  Thead,
-  Tr,
-  Th,
+  TableContainer,
   Tbody,
   Td,
-  Box,
+  Th,
+  Thead,
+  Tr,
 } from "@chakra-ui/react"
+import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "react-query"
-import { SkillsService, type ApiError } from "../../client"
+import { type ApiError, SkillsService } from "../../client"
 import ActionsMenu from "../../components/Common/ActionsMenu"
 import Navbar from "../../components/Common/Navbar"
 import useCustomToast from "../../hooks/useCustomToast"
@@ -86,11 +86,11 @@ function Skills() {
                         </Box>
                       </Td>
                       <Td>
-                        {!skill.managed ? (
-                          <ActionsMenu type={"Skill"} value={skill} />
-                        ) : (
-                          "Системный навык"
-                        )}
+                        <ActionsMenu
+                          type={"Skill"}
+                          value={skill}
+                          readOnly={skill.managed}
+                        />
                       </Td>
                     </Tr>
                   ))}

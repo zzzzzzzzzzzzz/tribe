@@ -23,8 +23,9 @@ def test_base_node_openai_uses_responses_api(monkeypatch: MonkeyPatch) -> None:
     )
 
     assert isinstance(node.model, FakeChatOpenAI)
-    assert recorded["args"] == ("gpt-4.1-mini",)
+    assert recorded["args"] == ()
     assert recorded["kwargs"] == {
+        "model": "gpt-4.1-mini",
         "temperature": 0.2,
         "base_url": "https://openai.example/v1",
         "use_responses_api": True,

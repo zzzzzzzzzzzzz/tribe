@@ -231,13 +231,20 @@ def persist_provider_attachments(
 
 def _target_provider_configs(
     members: Iterable[Member],
-) -> set[tuple[ProviderName, str | None]]:
-    targets: set[tuple[ProviderName, str | None]] = set()
+) -> list[tuple[ProviderName, str | None]]:
+    targets: list[tuple[ProviderName, str | None]] = []
+    seen: set[tuple[ProviderName, str | None]] = set()
     for member in members:
         if member.provider == "openai":
-            targets.add(("openai", member.base_url))
+            target: tuple[ProviderName, str | None] = ("openai", member.base_url)
+            if target not in seen:
+                seen.add(target)
+                targets.append(target)
         if member.provider == "gigachat":
-            targets.add(("gigachat", member.base_url))
+            target = ("gigachat", member.base_url)
+            if target not in seen:
+                seen.add(target)
+                targets.append(target)
     return targets
 
 

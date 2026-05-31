@@ -5,6 +5,7 @@
 import type { TeamChat } from '../models/TeamChat';
 import type { TeamChatPublic } from '../models/TeamChatPublic';
 import type { TeamCreate } from '../models/TeamCreate';
+import type { TeamExport } from '../models/TeamExport';
 import type { TeamOut } from '../models/TeamOut';
 import type { TeamsOut } from '../models/TeamsOut';
 import type { TeamUpdate } from '../models/TeamUpdate';
@@ -64,6 +65,28 @@ export class TeamsService {
     }
 
     /**
+     * Import Team
+     * Import a team definition and create a new team.
+     * @returns TeamOut Successful Response
+     * @throws ApiError
+     */
+    public static importTeam({
+        requestBody,
+    }: {
+        requestBody: TeamExport,
+    }): CancelablePromise<TeamOut> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/teams/import',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Read Team
      * Get team by ID.
      * @returns TeamOut Successful Response
@@ -77,6 +100,29 @@ export class TeamsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/teams/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Export Team
+     * Export a team definition including members and graph settings.
+     * @returns TeamExport Successful Response
+     * @throws ApiError
+     */
+    public static exportTeam({
+        id,
+    }: {
+        id: number,
+    }): CancelablePromise<TeamExport> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/teams/{id}/export',
             path: {
                 'id': id,
             },

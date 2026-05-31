@@ -307,6 +307,46 @@ class TeamsOut(SQLModel):
     count: int
 
 
+class TeamExportSkillRef(SQLModel):
+    name: str
+    description: str | None = None
+    managed: bool = False
+    tool_definition: dict[str, Any] | None = None
+
+
+class TeamExportUploadRef(SQLModel):
+    name: str
+    description: str | None = None
+
+
+class TeamExportMember(SQLModel):
+    id: int
+    name: str
+    backstory: str | None = None
+    role: str
+    type: str
+    owner_of: int | None = None
+    position_x: float
+    position_y: float
+    source: int | None = None
+    provider: str = "openai"
+    model: str = "gpt-4o-mini"
+    temperature: float = 0.7
+    interrupt: bool = False
+    base_url: str | None = None
+    skills: list[TeamExportSkillRef] = PydanticField(default_factory=list)
+    uploads: list[TeamExportUploadRef] = PydanticField(default_factory=list)
+
+
+class TeamExport(SQLModel):
+    export_version: int = 1
+    id: int | None = None
+    name: str = PydanticField(pattern=r"^[a-zA-Zа-яА-ЯёЁ0-9_\-\s]{1,64}$")
+    description: str | None = None
+    workflow: str = PydanticField(pattern=r"^(hierarchical|sequential)$")
+    members: list[TeamExportMember] = PydanticField(default_factory=list)
+
+
 # =============Threads===================
 
 
@@ -530,6 +570,14 @@ class SkillsOut(SQLModel):
 
 class SkillOut(SkillBase):
     id: int
+
+
+class SkillExport(SQLModel):
+    export_version: int = 1
+    name: str
+    description: str
+    managed: bool = False
+    tool_definition: dict[str, Any]
 
 
 class ToolDefinitionValidate(SQLModel):
