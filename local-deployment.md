@@ -74,15 +74,27 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up
 
 ## Accessing the Services
 
+By default, Adminer and Flower are disabled. To start the administrative
+interfaces locally, use:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile admin up -d
+```
+
+n8n and its worker are also disabled by default. To enable them, use
+`--profile automation` after configuring the dedicated n8n PostgreSQL database
+and credentials.
+
+
 Once the containers are running, you can access various services through the following URLs:
 
 - **Frontend**: [http://localhost/](http://localhost/)
 - **Backend API Documentation**: [http://localhost/docs/](http://localhost/docs/)
 - **Backend API Base URL**: [http://localhost/api/](http://localhost/api/)
 - **Qdrant Dashboard**: [http://qdrant.localhost/dashboard](http://qdrant.localhost/dashboard)
-- **Adminer**: [http://adminer.localhost/](http://adminer.localhost/)
+- **Adminer (optional `admin` profile)**: [http://adminer.localhost/](http://adminer.localhost/)
 - **Traefik UI**: [http://traefik.localhost/](http://traefik.localhost/)
-- **Flower**: [http://flower.localhost/](http://flower.localhost/)
+- **Flower (optional `admin` profile)**: [http://flower.localhost/](http://flower.localhost/)
 
 ## Troubleshooting
 - **Out of Memory**: If you are getting the `Worker (pid:14) was sent SIGKILL! Perhaps out of memory?` error, this is due to the number of processes started for the backend container consuming more memory than what is available. You can fix this by decreasing `MAX_WORKERS` in your `.env` file.

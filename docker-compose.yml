@@ -12,6 +12,7 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
 
   adminer:
+    profiles: ["admin"]
     image: adminer
     restart: always
     networks:
@@ -120,7 +121,7 @@ services:
     volumes:
       - app-backend-model-cache:/app/cache
       - app-upload-data:/app/upload-data
-    command: poetry run celery -A app.core.celery_app.celery_app worker --loglevel=info --uid=celery --gid=celery --max-memory-per-child=${MAX_MEMORY_PER_CHILD?Varible not set}
+    command: poetry run celery -A app.core.celery_app.celery_app worker --loglevel=info --uid=celery --gid=celery --max-memory-per-child=${MAX_MEMORY_PER_CHILD?Varible not set} --concurrency=${CELERY_CONCURRENCY:-1}
     depends_on:
       - redis
       - backend
@@ -158,6 +159,7 @@ services:
       - GIGACHAT_AUTH_TOKEN=${GIGACHAT_AUTH_TOKEN?Variable not set}
 
   flower:
+    profiles: ["admin"]
     image: mher/flower:2.0
     restart: always
     networks:
@@ -216,6 +218,7 @@ services:
       # to disable www redirection remove the section: ${STACK_NAME?Variable not set}-www-redirect,
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
   n8n:
+    profiles: ["automation"]
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
     # Internal port only; Traefik will route to it
@@ -274,6 +277,7 @@ services:
       # Point Traefik to the app’s internal port
       - traefik.http.services.${STACK_NAME?Variable not set}-n8n.loadbalancer.server.port=5678
   n8n-worker:
+    profiles: ["automation"]
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
     depends_on: [db, redis]

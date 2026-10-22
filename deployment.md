@@ -105,6 +105,31 @@ docker compose -f docker-compose.traefik.yml up -d
 
 ## Deploy Tribe
 
+### Small VM / core services only (default)
+
+The default deployment starts **only** PostgreSQL, Redis, Qdrant, backend, Celery, and frontend.
+Adminer and Flower are disabled by default under the `admin` Compose profile; n8n and
+its worker are disabled under the `automation` profile. The existing Traefik proxy is
+started separately as described above.
+
+```bash
+# Core application, without auxiliary services:
+docker compose -f docker-compose.yml up -d --build
+
+# Optional: administration dashboards (Adminer, Flower):
+docker compose -f docker-compose.yml --profile admin up -d
+
+# Optional: n8n and its worker (requires a prepared n8n database and credentials):
+docker compose -f docker-compose.yml --profile automation up -d
+```
+
+For a small VM, start with `MAX_WORKERS=1` and `CELERY_CONCURRENCY=1` (both
+set in `.env.example`). Monitor peak memory use with `docker stats`, especially
+while importing PDFs: embedding models can use significant RAM. **4 GiB is a
+trial configuration, not a validated capacity target.** Keep Docker volumes on
+persistent storage and arrange backups before storing important data.
+
+
 Now that you have Traefik in place you can deploy Tribe with Docker Compose.
 
 **Note**: You might want to jump ahead to the section about Continuous Deployment with GitHub Actions.
