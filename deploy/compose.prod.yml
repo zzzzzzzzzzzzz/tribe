@@ -1,0 +1,108 @@
+# Dedicated production stack. Do not combine with docker-compose.override.yml.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 10
+    networks: [default]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    networks: [default]
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.5
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT__SERVICE__API_KEY:?Set Qdrant API key}
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks: [default]
+
+  backend:
+    image: "ghcr.io/zzzzzzzzzzzzz/tribe-backend:${TAG:?Set image TAG}"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_SERVER: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      FASTEMBED_CACHE_PATH: /app/cache
+      MAX_WORKERS: "1"
+      WEB_CONCURRENCY: "1"
+    volumes:
+      - model-cache:/app/cache
+      - upload-data:/app/upload-data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.tribe-api.rule=Host(`${DOMAIN:?Set DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`))"
+      - "traefik.http.routers.tribe-api.entrypoints=websecure"
+      - "traefik.http.routers.tribe-api.tls=true"
+      - "traefik.http.routers.tribe-api.tls.certresolver=le"
+      - "traefik.http.routers.tribe-api.priority=100"
+      - "traefik.http.services.tribe-api.loadbalancer.server.port=80"
+    networks: [default, traefik-public]
+
+  celery:
+    image: "ghcr.io/zzzzzzzzzzzzz/tribe-backend:${TAG:?Set image TAG}"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_SERVER: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      FASTEMBED_CACHE_PATH: /app/cache
+    command: >-
+      poetry run celery -A app.core.celery_app.celery_app worker
+      --loglevel=info --uid=celery --gid=celery
+      --concurrency=${CELERY_CONCURRENCY:-1}
+      --max-memory-per-child=${MAX_MEMORY_PER_CHILD:-2048000}
+    volumes:
+      - model-cache:/app/cache
+      - upload-data:/app/upload-data
+    depends_on: [backend, redis]
+    networks: [default]
+
+  frontend:
+    image: "ghcr.io/zzzzzzzzzzzzz/tribe-frontend:${TAG:?Set image TAG}"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.tribe-web.rule=Host(`${DOMAIN:?Set DOMAIN}`)"
+      - "traefik.http.routers.tribe-web.entrypoints=websecure"
+      - "traefik.http.routers.tribe-web.tls=true"
+      - "traefik.http.routers.tribe-web.tls.certresolver=le"
+      - "traefik.http.services.tribe-web.loadbalancer.server.port=8080"
+    networks: [default, traefik-public]
+
+volumes:
+  pg-data:
+  qdrant-data:
+  model-cache:
+  upload-data:
+
+networks:
+  traefik-public:
+    external: true
