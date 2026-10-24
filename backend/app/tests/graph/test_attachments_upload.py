@@ -473,10 +473,14 @@ def test_upload_to_gigachat_uses_general_purpose(monkeypatch: MonkeyPatch) -> No
             self,
             *,
             credentials: str,
+            scope: str,
+            timeout: int,
             base_url: str | None,
             verify_ssl_certs: bool,
         ) -> None:
             recorded["credentials"] = credentials
+            recorded["scope"] = scope
+            recorded["timeout"] = timeout
             recorded["base_url"] = base_url
             recorded["verify_ssl_certs"] = verify_ssl_certs
 
@@ -502,3 +506,25 @@ def test_upload_to_gigachat_uses_general_purpose(monkeypatch: MonkeyPatch) -> No
     assert remote_id == "giga-file-id"
     assert recorded["payload"] == ("contract.jpg", b"image-bytes")
     assert recorded["purpose"] == "general"
+    assert recorded["scope"] == "GIGACHAT_API_B2B"
+    assert recorded["timeout"] == 120
+
+
+def test_delete_gigachat_file_uses_b2b_scope(monkeypatch: MonkeyPatch) -> None:
+    calls: dict[str, object] = {}
+
+    class FakeGigaChat:
+        def __init__(self, **kwargs: object) -> None:
+            calls.update(kwargs)
+
+        def delete_file(self, file_id: str) -> None:
+            calls["deleted"] = file_id
+
+    monkeypatch.setenv("GIGACHAT_AUTH_TOKEN", "test-credential")
+    monkeypatch.setattr("app.core.graph.attachments.GigaChat", FakeGigaChat)
+    attachments.delete_provider_file(
+        provider_name="gigachat", file_id="test-id", base_url=None
+    )
+    assert calls["scope"] == "GIGACHAT_API_B2B"
+    assert calls["timeout"] == 120
+    assert calls["deleted"] == "test-id"

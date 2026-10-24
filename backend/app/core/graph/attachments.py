@@ -12,6 +12,7 @@ from openai import OpenAI
 from sqlmodel import Session, select
 
 from app.core.db import engine
+from app.core.graph.gigachat_config import GIGACHAT_SCOPE, GIGACHAT_TIMEOUT
 from app.models import (
     ChatContentFilePart,
     ChatContentImagePart,
@@ -93,6 +94,8 @@ def _upload_to_gigachat(
 
     client = GigaChat(
         credentials=token,
+        scope=GIGACHAT_SCOPE,
+        timeout=GIGACHAT_TIMEOUT,
         base_url=base_url,
         verify_ssl_certs=False,
     )
@@ -115,6 +118,8 @@ def delete_provider_file(
         return
     GigaChat(
         credentials=token,
+        scope=GIGACHAT_SCOPE,
+        timeout=GIGACHAT_TIMEOUT,
         base_url=base_url,
         verify_ssl_certs=False,
     ).delete_file(file_id)

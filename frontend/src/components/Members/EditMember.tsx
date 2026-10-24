@@ -85,7 +85,7 @@ const AVAILABLE_MODELS = {
     "gpt-4-turbo",
     "gpt-3.5-turbo",
   ],
-  gigachat: ["GigaChat", "GigaChat-Plus", "GigaChat-Pro", "GigaChat-Max"],
+  gigachat: ["GigaChat-2-Max"],
 }
 
 const ALLOWED_MEMBER_CONFIGS: Record<MemberTypes, MemberConfigs> = {
@@ -396,20 +396,39 @@ export function EditMember({
                 return (
                   <FormControl mt={4} isRequired isInvalid={!!error}>
                     <FormLabel htmlFor="model">Модель</FormLabel>
-                    <CreatableSelect
-                      id="model"
-                      name={name}
-                      ref={ref}
-                      onChange={(newValue) => onChange(newValue?.value)}
-                      onBlur={onBlur}
-                      value={{ value: value, label: value }}
-                      options={modelOptions}
-                      useBasicStyles
-                    />
-                    <FormHelperText>
-                      Если модель отсутствует в списке, вы можете ввести её
-                      вручную.
-                    </FormHelperText>
+                    {modelProvider === "gigachat" ? (
+                      <Select
+                        id="model"
+                        name={name}
+                        ref={ref}
+                        value={value}
+                        onChange={(event) => onChange(event.target.value)}
+                        onBlur={onBlur}
+                      >
+                        {modelOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <>
+                        <CreatableSelect
+                          id="model"
+                          name={name}
+                          ref={ref}
+                          onChange={(newValue) => onChange(newValue?.value)}
+                          onBlur={onBlur}
+                          value={{ value: value, label: value }}
+                          options={modelOptions}
+                          useBasicStyles
+                        />
+                        <FormHelperText>
+                          Если модель отсутствует в списке, вы можете ввести её
+                          вручную.
+                        </FormHelperText>
+                      </>
+                    )}
                   </FormControl>
                 )
               }}

@@ -112,7 +112,7 @@ def test_gigachat_text_message_integration() -> None:
 
     from app.core.graph.build import chat_message_to_human_message
 
-    model_name = os.getenv("GIGACHAT_MODEL", "GigaChat")
+    model_name = "GigaChat-2-Max"
     base_url = os.getenv("GIGACHAT_BASE_URL")
 
     human_message = chat_message_to_human_message(_build_gigachat_message())
