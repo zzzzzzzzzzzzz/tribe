@@ -1,4 +1,4 @@
-# Первый деплой Tribe на FST.KZ (Казахстан)
+# Развёртывание Tribe на VPS
 
 **Статус:** подготовка. Никакие изменения на VPS не выполнялись автоматически.
 Первый production-деплой запускается вручную: Actions → Deploy Tribe → Run workflow (branch master).
@@ -8,7 +8,7 @@ Settings → Secrets and variables → Actions → Variables → New repository 
 push/release создают пропущенный запуск, а не деплой.
 Не устанавливайте self-hosted runner. CI выполняется на GitHub-hosted ubuntu-latest.
 
-Данные: FST.KZ Premium 100C, публичный IPv4 95.56.251.147, домен tribe.zzzzzzzzzzzzz.cc,
+Целевой сервер: публичный IPv4 95.56.251.147, домен tribe.zzzzzzzzzzzzz.cc,
 SSH 22. Версия Ubuntu — ранее пользователь сообщил **26.04 LTS**, но в последней анкете осталось
 24.04; проверьте с помощью lsb_release -a. Docker поддерживает обе версии.
 

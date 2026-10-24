@@ -58,9 +58,9 @@ docker compose -f docker-compose.yml exec -T backend bash /app/tests-start.sh
 
 ## Production deployment
 
-Current target: **FST.KZ VPS**, Ubuntu 24.04/26.04, 3 vCPU / 8 GB RAM, `tribe.zzzzzzzzzzzzz.cc`. The deployment uses only the files under [`deploy/`](./deploy/).
+Production runs on an Ubuntu VPS with Docker Engine and Compose, accessed over SSH. The deployment uses only the files under [`deploy/`](./deploy/).
 
-1. Follow the [VPS bootstrap and SSH hardening guide](./deploy/FST-KZ-README.md).
+1. Follow the [VPS bootstrap and SSH hardening guide](./deploy/README.md).
 2. Store application secrets in `/opt/tribe/.env` on the VPS, based on [`deploy/env.production.example`](./deploy/env.production.example). Keep it out of Git.
 3. Create GitHub Actions secrets `VPS_DEPLOY_SSH_KEY` and `VPS_SSH_KNOWN_HOSTS`; the runner uses the built-in `GITHUB_TOKEN` for GHCR.
 4. **First deployment:** Actions → **Deploy Tribe** → **Run workflow**, branch `master`.
