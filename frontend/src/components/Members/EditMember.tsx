@@ -401,7 +401,7 @@ export function EditMember({
                         id="model"
                         name={name}
                         ref={ref}
-                        value={value}
+                        value={value ?? ""}
                         onChange={(event) => onChange(event.target.value)}
                         onBlur={onBlur}
                       >
