@@ -34,6 +34,7 @@ from app.models import (
     TeamUpdate,
     Thread,
     Upload,
+    UploadStatus,
     User,
 )
 
@@ -252,15 +253,57 @@ def import_team(
     team_export: TeamExport,
 ) -> Any:
     """
-    Import a team definition and create a new team.
-    Missing skills and uploads are ignored.
+    Import a team and its references, rejecting missing resources explicitly.
     """
-    # Check the full import before creating anything in the database.
+    # Report all unresolved dependencies before creating any database records.
+    skills_by_name = _accessible_skills_by_name(session, current_user)
+    uploads_by_name = _accessible_uploads_by_name(session, current_user)
+    missing_skills: set[str] = set()
+    missing_uploads: set[str] = set()
+    unready_uploads: set[str] = set()
     for member_export in team_export.members:
         try:
             validate_model_selection(member_export.provider, member_export.model)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=422,
+                detail=f"Member {member_export.name!r}: {exc}",
+            ) from exc
+        missing_skills.update(
+            skill.name
+            for skill in member_export.skills
+            if skill.name not in skills_by_name
+        )
+        missing_uploads.update(
+            upload.name
+            for upload in member_export.uploads
+            if upload.name not in uploads_by_name
+        )
+        unready_uploads.update(
+            upload.name
+            for upload in member_export.uploads
+            if upload.name in uploads_by_name
+            and uploads_by_name[upload.name].status != UploadStatus.COMPLETED
+        )
+
+    if missing_skills or missing_uploads or unready_uploads:
+        problems: list[str] = []
+        if missing_skills:
+            problems.append(
+                "Missing skills: " + ", ".join(sorted(missing_skills))
+                + ". Import these skills before importing the team"
+            )
+        if missing_uploads:
+            problems.append(
+                "Missing uploads: " + ", ".join(sorted(missing_uploads))
+                + ". Upload these documents before importing the team"
+            )
+        if unready_uploads:
+            problems.append(
+                "Uploads not ready: " + ", ".join(sorted(unready_uploads))
+                + ". Wait until the upload status is Completed"
+            )
+        raise HTTPException(status_code=422, detail="; ".join(problems))
 
     team = Team(
         name=_unique_team_name(session, team_export.name),
@@ -272,8 +315,6 @@ def import_team(
     session.commit()
     session.refresh(team)
 
-    skills_by_name = _accessible_skills_by_name(session, current_user)
-    uploads_by_name = _accessible_uploads_by_name(session, current_user)
     member_id_map: dict[int, int] = {}
     imported_members: list[tuple[Member, TeamExportMember]] = []
 
@@ -297,12 +338,10 @@ def import_team(
         member.skills = [
             skills_by_name[skill.name]
             for skill in member_export.skills
-            if skill.name in skills_by_name
         ]
         member.uploads = [
             uploads_by_name[upload.name]
             for upload in member_export.uploads
-            if upload.name in uploads_by_name
         ]
         session.add(member)
         session.commit()
@@ -314,7 +353,10 @@ def import_team(
     for member, member_export in imported_members:
         if member_export.source is not None:
             member.source = member_id_map.get(member_export.source)
-        if member_export.owner_of == team_export.id:
+        if (
+            member_export.owner_of is not None
+            and member_export.owner_of == team_export.id
+        ):
             member.owner_of = team.id
         elif member_export.owner_of is not None:
             member.owner_of = member_id_map.get(member_export.owner_of)

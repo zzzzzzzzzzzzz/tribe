@@ -32,6 +32,7 @@ def test_base_node_openai_uses_responses_api(monkeypatch: MonkeyPatch) -> None:
         "output_version": "responses/v1",
     }
 
+
 def test_gigachat_uses_b2b_scope_and_only_max_model(monkeypatch: MonkeyPatch) -> None:
     recorded: dict[str, Any] = {}
 

@@ -39,3 +39,11 @@ return a provider-side `model_not_found` or access error.
 The UI and backend enforce the same policy. Model changes require a new
 frontend/backend image deployment; the values are not controlled through
 `.env`.
+
+### Strict import error reporting
+
+Team import validates every referenced skill, uploaded document, and provider
+model before any database writes. A missing resource returns HTTP 422 with
+its exact name and a hint to import the skill or upload the document first.
+The UI shows the server's error detail instead of hiding the underlying reason.
+No resources are created automatically and no existing skill is modified.

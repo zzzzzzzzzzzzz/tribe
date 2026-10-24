@@ -5,6 +5,7 @@ import { FiUpload } from "react-icons/fi"
 import { useQueryClient } from "react-query"
 
 import {
+  type ApiError,
   type SkillExport,
   SkillsService,
   type TeamExport,
@@ -58,8 +59,19 @@ const Navbar = ({ type }: NavbarProps) => {
         await queryClient.invalidateQueries("skills")
         showToast("Навык импортирован.", "", "success")
       }
-    } catch {
-      showToast("Не удалось импортировать JSON.", "", "error")
+    } catch (error) {
+      const detail = (error as ApiError)?.body?.detail
+      const message =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail)
+            ? detail
+                .map((item: { msg?: string }) => item.msg ?? "Ошибка формата JSON")
+                .join("; ")
+            : error instanceof Error
+              ? error.message
+              : "Проверьте JSON и зависимости импортируемого объекта."
+      showToast("Не удалось импортировать JSON.", message, "error")
     }
   }
 

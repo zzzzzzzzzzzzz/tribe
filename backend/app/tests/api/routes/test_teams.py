@@ -122,7 +122,7 @@ def test_export_team(
     assert exported_member["uploads"][0]["name"] == upload.name
 
 
-def test_import_team_recreates_graph_and_drops_missing_references(
+def test_import_team_recreates_graph_and_preserves_references(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     existing_skill = Skill.model_validate(
@@ -166,11 +166,9 @@ def test_import_team_recreates_graph_and_drops_missing_references(
                 "base_url": None,
                 "skills": [
                     {"name": existing_skill.name},
-                    {"name": "missing skill"},
                 ],
                 "uploads": [
                     {"name": existing_upload.name},
-                    {"name": "missing upload"},
                 ],
             },
             {
@@ -283,3 +281,140 @@ def test_import_team_rejects_unsupported_openai_model_without_creating_team(
     )
     assert response.status_code == 422
     assert db.exec(select(Team).where(Team.name == name)).first() is None
+
+
+def test_import_team_reports_missing_skills_and_uploads(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    name = random_lower_string()
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/import",
+        json={
+            "name": name,
+            "workflow": "sequential",
+            "members": [
+                {
+                    "id": 1,
+                    "name": "Worker",
+                    "role": "Answer questions",
+                    "type": "freelancer_root",
+                    "position_x": 0,
+                    "position_y": 0,
+                    "provider": "gigachat",
+                    "model": "GigaChat-2-Max",
+                    "skills": [{"name": "MissingDemoSkill"}],
+                    "uploads": [{"name": "MissingDemoDocument"}],
+                }
+            ],
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "MissingDemoSkill" in detail
+    assert "MissingDemoDocument" in detail
+    assert "Import these skills" in detail
+    assert "Upload these documents" in detail
+    assert db.exec(select(Team).where(Team.name == name)).first() is None
+
+
+def test_import_team_reports_invalid_member_model(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    name = random_lower_string()
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/import",
+        json={
+            "name": name,
+            "workflow": "sequential",
+            "members": [
+                {
+                    "id": 1,
+                    "name": "Meteorologist",
+                    "role": "Answer questions",
+                    "type": "freelancer_root",
+                    "position_x": 0,
+                    "position_y": 0,
+                    "provider": "gigachat",
+                    "model": "GigaChat-Max",
+                }
+            ],
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    assert "Meteorologist" in response.json()["detail"]
+    assert "GigaChat-2-Max" in response.json()["detail"]
+    assert db.exec(select(Team).where(Team.name == name)).first() is None
+
+
+def test_import_team_requires_completed_upload(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    name = random_lower_string()
+    upload_name = random_lower_string()
+    db.add(
+        Upload(
+            name=upload_name,
+            description="Pending document",
+            owner_id=1,
+            status=UploadStatus.IN_PROGRESS,
+        )
+    )
+    db.commit()
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/import",
+        json={
+            "name": name,
+            "workflow": "sequential",
+            "members": [
+                {
+                    "id": 1,
+                    "name": "Worker",
+                    "role": "Answer questions",
+                    "type": "freelancer_root",
+                    "position_x": 0,
+                    "position_y": 0,
+                    "provider": "openai",
+                    "model": "gpt-4o-mini",
+                    "uploads": [{"name": upload_name}],
+                }
+            ],
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    assert "Uploads not ready" in response.json()["detail"]
+    assert upload_name in response.json()["detail"]
+    assert db.exec(select(Team).where(Team.name == name)).first() is None
+
+
+def test_import_team_without_export_id_keeps_root_owner_null(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/import",
+        json={
+            "id": None,
+            "name": random_lower_string(),
+            "workflow": "sequential",
+            "members": [
+                {
+                    "id": 1,
+                    "name": "Worker",
+                    "role": "Answer questions",
+                    "type": "freelancer_root",
+                    "position_x": 0,
+                    "position_y": 0,
+                    "owner_of": None,
+                    "provider": "openai",
+                    "model": "gpt-4o-mini",
+                }
+            ],
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    imported = db.get(Team, response.json()["id"])
+    assert imported is not None
+    assert imported.members[0].owner_of is None
