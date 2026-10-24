@@ -21,12 +21,7 @@ import {
   Textarea,
   Tooltip,
 } from "@chakra-ui/react"
-import {
-  CreatableSelect,
-  Select as MultiSelect,
-  type OptionBase,
-  chakraComponents,
-} from "chakra-react-select"
+import { Select as MultiSelect, chakraComponents } from "chakra-react-select"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { useMutation, useQuery, useQueryClient } from "react-query"
@@ -46,11 +41,6 @@ interface EditMemberProps {
   teamId: number
   isOpen: boolean
   onClose: () => void
-}
-
-interface ModelOption extends OptionBase {
-  label: string
-  value: string
 }
 
 type MemberTypes =
@@ -79,10 +69,21 @@ const customSelectOption = {
 const AVAILABLE_MODELS = {
   openai: [
     "gpt-5.2",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-5-nano",
     "gpt-5.1",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-6-luna",
+    "gpt-5.6-luna",
+    "gpt-5.6-terra",
+    "gpt-5.5",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
     "gpt-4o-mini",
     "gpt-4o",
-    "gpt-4-turbo",
     "gpt-3.5-turbo",
   ],
   gigachat: ["GigaChat-2-Max"],
@@ -235,12 +236,9 @@ export function EditMember({
     : []
 
   const modelProvider = watch("provider") as ModelProvider
-  const modelOptions: ModelOption[] = (
-    AVAILABLE_MODELS[modelProvider] ?? []
-  ).map((model) => ({
-    label: model,
-    value: model,
-  }))
+  const modelOptions = AVAILABLE_MODELS[modelProvider] ?? []
+  const selectedModel = watch("model")
+  const supportedModel = modelOptions.some((model) => model === selectedModel)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -389,49 +387,43 @@ export function EditMember({
             <Controller
               control={control}
               name="model"
+              rules={{
+                validate: (model) =>
+                  modelOptions.some((option) => option === model) ||
+                  "Выберите модель из списка.",
+              }}
               render={({
                 field: { onChange, onBlur, value, name, ref },
                 fieldState: { error },
-              }) => {
-                return (
-                  <FormControl mt={4} isRequired isInvalid={!!error}>
-                    <FormLabel htmlFor="model">Модель</FormLabel>
-                    {modelProvider === "gigachat" ? (
-                      <Select
-                        id="model"
-                        name={name}
-                        ref={ref}
-                        value={value ?? ""}
-                        onChange={(event) => onChange(event.target.value)}
-                        onBlur={onBlur}
-                      >
-                        {modelOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <>
-                        <CreatableSelect
-                          id="model"
-                          name={name}
-                          ref={ref}
-                          onChange={(newValue) => onChange(newValue?.value)}
-                          onBlur={onBlur}
-                          value={{ value: value, label: value }}
-                          options={modelOptions}
-                          useBasicStyles
-                        />
-                        <FormHelperText>
-                          Если модель отсутствует в списке, вы можете ввести её
-                          вручную.
-                        </FormHelperText>
-                      </>
-                    )}
-                  </FormControl>
-                )
-              }}
+              }) => (
+                <FormControl mt={4} isRequired isInvalid={!!error || !supportedModel}>
+                  <FormLabel htmlFor="model">Модель</FormLabel>
+                  <Select
+                    id="model"
+                    name={name}
+                    ref={ref}
+                    value={supportedModel ? (value ?? "") : ""}
+                    onChange={(event) => onChange(event.target.value)}
+                    onBlur={onBlur}
+                  >
+                    <option value="" disabled>
+                      Выберите модель из списка
+                    </option>
+                    {modelOptions.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </Select>
+                  {!supportedModel && value && (
+                    <FormHelperText>
+                      Ранее выбранная модель ({value}) больше не поддерживается.
+                      Выберите новую.
+                    </FormHelperText>
+                  )}
+                  <FormErrorMessage>{error?.message}</FormErrorMessage>
+                </FormControl>
+              )}
             />
             {modelProvider === "openai" && (
               <FormControl mt={4} isInvalid={!!errors.base_url}>

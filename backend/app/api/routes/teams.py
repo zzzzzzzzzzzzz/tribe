@@ -13,6 +13,7 @@ from app.api.deps import (
     SessionDep,
 )
 from app.core.graph.build import generator
+from app.core.graph.model_catalog import validate_model_selection
 from app.models import (
     ChatContentFilePart,
     ChatContentImagePart,
@@ -254,6 +255,13 @@ def import_team(
     Import a team definition and create a new team.
     Missing skills and uploads are ignored.
     """
+    # Check the full import before creating anything in the database.
+    for member_export in team_export.members:
+        try:
+            validate_model_selection(member_export.provider, member_export.model)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     team = Team(
         name=_unique_team_name(session, team_export.name),
         description=team_export.description,

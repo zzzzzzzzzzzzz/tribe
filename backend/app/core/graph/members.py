@@ -19,7 +19,8 @@ from langgraph.graph import add_messages
 from pydantic import BaseModel, Field, SecretStr
 from typing_extensions import NotRequired, TypedDict
 
-from app.core.graph.gigachat_config import GIGACHAT_MODEL, GIGACHAT_SCOPE, GIGACHAT_TIMEOUT
+from app.core.graph.gigachat_config import GIGACHAT_SCOPE, GIGACHAT_TIMEOUT
+from app.core.graph.model_catalog import validate_model_selection
 from app.core.graph.rag.qdrant import QdrantStore
 from app.core.graph.skills import managed_skills
 from app.core.graph.skills.api_tool import dynamic_api_tool
@@ -197,6 +198,7 @@ class BaseNode:
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
         self.model: BaseChatModel
+        validate_model_selection(provider, model)
         if provider == "openai":
             self.model = ChatOpenAI(
                 model=model,
@@ -206,10 +208,6 @@ class BaseNode:
                 output_version="responses/v1",
             )
         elif provider == "gigachat":
-            if model != GIGACHAT_MODEL:
-                raise ValueError(
-                    f"GigaChat currently supports only {GIGACHAT_MODEL}; got {model!r}"
-                )
             auth_token_secret = secret_from_env("GIGACHAT_AUTH_TOKEN", default=None)()
             auth_token = (
                 auth_token_secret.get_secret_value()

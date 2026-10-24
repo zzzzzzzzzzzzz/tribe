@@ -5,6 +5,7 @@ from sqlmodel import col, func, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
+from app.core.graph.model_catalog import validate_model_selection
 from app.models import (
     Member,
     MemberCreate,
@@ -147,6 +148,11 @@ def create_member(
             raise HTTPException(status_code=404, detail="Team not found.")
         if team.owner_id != current_user.id:
             raise HTTPException(status_code=400, detail="Not enough permissions")
+    try:
+        validate_model_selection(member_in.provider, member_in.model)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     member = Member.model_validate(member_in, update={"belongs_to": team_id})
     session.add(member)
     session.commit()
@@ -188,6 +194,14 @@ def update_member(
 
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
+
+    # Validate the effective provider/model before changing any persistent data.
+    provider = member_in.provider if member_in.provider is not None else member.provider
+    model = member_in.model if member_in.model is not None else member.model
+    try:
+        validate_model_selection(provider, model)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     # update member's skills if required
     if member_in.skills is not None:

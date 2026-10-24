@@ -244,3 +244,51 @@ def test_delete_member(
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
+
+
+def test_create_member_rejects_unsupported_openai_model(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    team = create_team(db, 1)
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/{team.id}/members",
+        json={
+            "name": random_lower_string(),
+            "role": "worker",
+            "type": "worker",
+            "position_x": 0.0,
+            "position_y": 0.0,
+            "provider": "openai",
+            "model": "unsupported-model-id",
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    assert "Unsupported OpenAI model" in response.json()["detail"]
+
+
+def test_update_member_rejects_unsupported_openai_model(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    team = create_team(db, 1)
+    member = Member(
+        name=random_lower_string(),
+        role="worker",
+        type="worker",
+        position_x=0.0,
+        position_y=0.0,
+        provider="openai",
+        model="gpt-5-nano",
+        belongs_to=team.id,
+    )
+    db.add(member)
+    db.commit()
+    db.refresh(member)
+    response = client.put(
+        f"{settings.API_V1_STR}/teams/{team.id}/members/{member.id}",
+        json={"model": "unsupported-model-id"},
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    db.refresh(member)
+    assert member.model == "gpt-5-nano"

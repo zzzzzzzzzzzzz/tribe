@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.models import (
@@ -255,3 +255,31 @@ def test_delete_team(
         f"{settings.API_V1_STR}/teams/{team.id}", headers=superuser_token_headers
     )
     assert response.status_code == 200
+
+
+def test_import_team_rejects_unsupported_openai_model_without_creating_team(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    name = random_lower_string()
+    response = client.post(
+        f"{settings.API_V1_STR}/teams/import",
+        json={
+            "name": name,
+            "workflow": "sequential",
+            "members": [
+                {
+                    "id": 1,
+                    "name": "Worker",
+                    "role": "Work",
+                    "type": "worker",
+                    "position_x": 0,
+                    "position_y": 0,
+                    "provider": "openai",
+                    "model": "unsupported-model-id",
+                }
+            ],
+        },
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 422
+    assert db.exec(select(Team).where(Team.name == name)).first() is None
