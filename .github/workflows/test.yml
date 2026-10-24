@@ -33,7 +33,7 @@ jobs:
           test "$(docker inspect -f '{{.State.Running}}' "$(docker compose -f docker-compose.yml ps -q backend)")" = true
 
       - name: Lint
-        run: docker compose -f docker-compose.yml exec -T backend bash /app/scripts/lint.sh
+        run: docker compose -f docker-compose.yml exec -T backend bash /app/lint.sh
 
       - name: Run tests
         run: docker compose -f docker-compose.yml exec -T backend bash /app/tests-start.sh
