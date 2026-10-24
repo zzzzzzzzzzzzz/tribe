@@ -5,8 +5,8 @@ from langchain_core.messages import AnyMessage, HumanMessage
 from app.core.graph.members import (
     LeaderNode,
     SummariserNode,
-    WorkerNode,
     TeamState,
+    WorkerNode,
     format_messages,
     previous_attachment_messages,
 )
