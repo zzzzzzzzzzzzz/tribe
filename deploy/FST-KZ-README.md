@@ -1,8 +1,12 @@
 # Первый деплой Tribe на FST.KZ (Казахстан)
 
 **Статус:** подготовка. Никакие изменения на VPS не выполнялись автоматически.
-Первый production-деплой запускается вручную: Actions → Deploy Tribe to FST.KZ (manual) → Run workflow (branch master).
-Не запускайте старые инструкции для self-hosted runners. CI выполняется на GitHub-hosted ubuntu-latest.
+Первый production-деплой запускается вручную: Actions → Deploy Tribe → Run workflow (branch master).
+Далее включается автоматический деплой по push в master или публикации GitHub Release:
+Settings → Secrets and variables → Actions → Variables → New repository variable
+`TRIBE_AUTO_DEPLOY=true`. Пока переменная отсутствует или имеет значение `false`,
+push/release создают пропущенный запуск, а не деплой.
+Не устанавливайте self-hosted runner. CI выполняется на GitHub-hosted ubuntu-latest.
 
 Данные: FST.KZ Premium 100C, публичный IPv4 95.56.251.147, домен tribe.zzzzzzzzzzzzz.cc,
 SSH 22. Версия Ubuntu — ранее пользователь сообщил **26.04 LTS**, но в последней анкете осталось
@@ -155,13 +159,14 @@ API-ключ OPENAI_API_KEY нужен лишь при использовани�
    **Проверьте fingerprint** host key по независимому доверенному источнику
    (панель/консоль VPS) перед добавлением. Не считайте ssh-keyscan подтверждением подлинности.
 
-В репозитории используйте Environment с именем production (опционально с ручным
-подтверждением). Репозиторий публичный; workflow защищён запуском только из master
-и отсутствием событий push/release. Встроенный GITHUB_TOKEN используется для GHCR.
+В репозитории используйте Environment с именем production (при необходимости — с ручным
+подтверждением). Репозиторий публичный; первый деплой запускается вручную из master.
+Автоматический запуск push/release блокирует `TRIBE_AUTO_DEPLOY`, пока она не установлена
+в `true`. Встроенный GITHUB_TOKEN используется для GHCR.
 
 ## 6. Запуск вручную
 
-GitHub → Actions → Deploy Tribe to FST.KZ (manual) → Run workflow → master.
+GitHub → Actions → Deploy Tribe → Run workflow → master.
 Workflow соберёт backend и frontend через GitHub-hosted runner, загрузит в GHCR,
 скопирует файлы Compose и deploy/remote-deploy.sh на VPS, временно авторизуется в GHCR с GITHUB_TOKEN,
 поднимет Traefik и основной стек.
@@ -170,6 +175,8 @@ Traefik v3.6 использует Let's Encrypt, HTTP challenge на порту 
 Dashboard наружу не публикуется. Внешние порты только 80 и 443.
 Исключены n8n, n8n-worker, Adminer, Flower, self-hosted runner.
 Контейнеры PostgreSQL 16, Redis 7.4, Qdrant 1.11.5, backend, celery, frontend.
+
+Локальная разработка использует упрощённый `docker-compose.yml` без Traefik; production всегда использует только файлы из каталога `deploy/`.
 
 **Важно:** первый билд ещё не был выполнен. В частности, старый Python-образ
 backend и зависимости могут потребовать корректировок по результатам CI.

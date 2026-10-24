@@ -1,7 +1,11 @@
-name: Deploy Tribe to FST.KZ (manual)
+name: Deploy Tribe
 
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -13,7 +17,17 @@ concurrency:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/master'
+    if: >-
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/master'
+      ) || (
+        vars.TRIBE_AUTO_DEPLOY == 'true' &&
+        (
+          (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+          (github.event_name == 'release' && github.event.action == 'published')
+        )
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

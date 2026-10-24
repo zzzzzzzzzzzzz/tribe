@@ -1,64 +1,47 @@
-name: Test
+name: Build and Test
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    types:
-      - opened
-      - synchronize
+    branches: [master]
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+      - name: Create local test environment
+        run: cp .env.example .env
 
-      - run: cp .env.example .env
-      - run: docker compose build
-      - run: docker compose down -v --remove-orphans
-      - run: docker compose up -d
+      - name: Build backend and frontend
+        run: docker compose -f docker-compose.yml build backend frontend
 
-      - name: Wait for Docker Containers to be Ready
+      - name: Start backing services and backend
+        run: docker compose -f docker-compose.yml up -d db redis qdrant backend
+
+      - name: Check backend container and startup
         run: |
-          echo "Waiting for Docker containers to be ready..."
-          sleep 10
-          docker ps -a
-
-      - name: Ensure Docker Container is Running
-        run: |
-          if [ $(docker inspect -f '{{.State.Running}}' $(docker-compose ps -q backend)) != "true" ]; then
-            echo "Backend container is not running"
-            docker logs $(docker-compose ps -q backend)
-            exit 1
-          fi
+          set -euo pipefail
+          sleep 15
+          docker compose -f docker-compose.yml ps
+          test "$(docker inspect -f '{{.State.Running}}' "$(docker compose -f docker-compose.yml ps -q backend)")" = true
 
       - name: Lint
-        run: docker compose exec -T backend bash /app/scripts/lint.sh
-      - name: Run tests
-        run: docker compose exec -T backend bash /app/tests-start.sh "Coverage for ${{ github.sha }}"
-      - run: docker compose down -v --remove-orphans
-      - name: Store coverage files
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-html
-          path: backend/htmlcov
+        run: docker compose -f docker-compose.yml exec -T backend bash /app/scripts/lint.sh
 
-  # https://github.com/marketplace/actions/alls-green#why
-  alls-green: # This job does nothing and is only used for the branch protection
-    if: always()
-    needs:
-      - test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
-        with:
-          jobs: ${{ toJSON(needs) }}
+      - name: Run tests
+        run: docker compose -f docker-compose.yml exec -T backend bash /app/tests-start.sh
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml logs --no-color --tail=100
+
+      - name: Stop test containers
+        if: always()
+        run: docker compose -f docker-compose.yml down -v --remove-orphans

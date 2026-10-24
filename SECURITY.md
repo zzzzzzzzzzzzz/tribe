@@ -1,29 +1,9 @@
-# Security Policy
+# Security
 
-Security is very important for this project and its community. 🔒
+Do not post credentials, tokens, production data, or detailed vulnerability reports in public GitHub issues.
 
-Learn more about it below. 👇
+If GitHub private vulnerability reporting is enabled for this repository, use its **Security → Report a vulnerability** flow. Otherwise, contact the repository owner privately before disclosing sensitive findings.
 
-## Versions
+The production deployment restricts published ports to SSH and HTTPS, keeps application credentials in a server-side `.env` file, and does not expose the database, Redis, or Qdrant directly. Follow [the deployment guide](./deploy/FST-KZ-README.md) and apply security updates after testing.
 
-The latest version or release is supported.
-
-You are encouraged to write tests for your application and update your versions frequently after ensuring that your tests are passing. This way you will benefit from the latest features, bug fixes, and **security fixes**.
-
-## Reporting a Vulnerability
-
-If you think you found a vulnerability, and even if you are not sure about it, please report it right away by sending an email to: security@wovenblocks.com. Please try to be as explicit as possible, describing all the steps and example code to reproduce the security issue.
-
-I (the author, [streetlamb](https://github.com/StreetLamb)) will review it thoroughly and get back to you.
-
-## Public Discussions
-
-Please restrain from publicly discussing a potential security vulnerability. 🙊
-
-It's better to discuss privately and try to find a solution first, to limit the potential impact as much as possible.
-
----
-
-Thanks for your help!
-
-The community and I thank you for that. 🙇
+This is a self-hosted project. Operators are responsible for host updates, trusted TLS certificates for external model providers, and backups.
