@@ -181,10 +181,14 @@ def _history_attachment_references(
     """Select saved provider file IDs without resending or copying the payload."""
     result: dict[str, list[dict[str, str]]] = {"openai": [], "gigachat": []}
     for attachment in sorted(items, key=lambda item: item.id or 0):
-        provider = attachment.provider
-        if provider not in result:
+        provider: ProviderName
+        if attachment.provider == "openai":
+            provider = "openai"
+        elif attachment.provider == "gigachat":
+            provider = "gigachat"
+        else:
             continue
-        if attachment.file_id in current_file_ids.get(provider, []):
+        if attachment.file_id in current_file_ids[provider]:
             continue
         content_type = attachment.content_type or (
             mimetypes.guess_type(attachment.filename or "")[0] or ""
