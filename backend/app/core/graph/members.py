@@ -194,7 +194,6 @@ class ReturnTeamState(TypedDict):
     task: NotRequired[list[AnyMessage]]
 
 
-
 def previous_attachment_messages(state: TeamState, provider: str) -> list[HumanMessage]:
     """Use old attachment file IDs without transmitting their original bytes."""
     references = state.get("historical_provider_attachments", {}).get(provider, [])
@@ -539,9 +538,7 @@ class LeaderNode(BaseNode):
                 team_task=format_messages(state["main_task"]),
                 history_string=format_messages(state["history"]),
                 options=str(options),
-                previous_attachments=previous_attachment_messages(
-                    state, self.provider
-                ),
+                previous_attachments=previous_attachment_messages(state, self.provider),
             )
             | bind_tool
             | JsonOutputKeyToolsParser(key_name="route", first_tool_only=True)
@@ -602,9 +599,7 @@ class SummariserNode(BaseNode):
                 team_members_name=team_members_name,
                 team_task=team_task,
                 history_string=format_messages(state["history"]),
-                previous_attachments=previous_attachment_messages(
-                    state, self.provider
-                ),
+                previous_attachments=previous_attachment_messages(state, self.provider),
             )
             | self.final_answer_model
             | RunnableLambda(self.tag_with_name).bind(name=f"{team.name}_answer")  # type: ignore[arg-type]

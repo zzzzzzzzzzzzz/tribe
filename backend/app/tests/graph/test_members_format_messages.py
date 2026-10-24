@@ -154,7 +154,10 @@ def test_openai_second_turn_reuses_uploaded_image_and_document_ids() -> None:
     messages = previous_attachment_messages(state, "openai")
     assert [message.content for message in messages] == [
         [
-            {"type": "input_text", "text": "Ранее прикреплённое изображение пользователя"},
+            {
+                "type": "input_text",
+                "text": "Ранее прикреплённое изображение пользователя",
+            },
             {"type": "input_image", "file_id": "openai-image-1"},
         ],
         [
@@ -209,7 +212,9 @@ def test_gigachat_respects_ten_image_limit_with_current_images() -> None:
     assert messages[-1].additional_kwargs["attachments"] == ["old-11"]
 
 
-def test_sequential_worker_prompt_contains_previous_attachment_before_new_task() -> None:
+def test_sequential_worker_prompt_contains_previous_attachment_before_new_task() -> (
+    None
+):
     history_message = HumanMessage(
         content=[
             {"type": "input_text", "text": "Previous attachment"},

@@ -290,17 +290,20 @@ def import_team(
         problems: list[str] = []
         if missing_skills:
             problems.append(
-                "Missing skills: " + ", ".join(sorted(missing_skills))
+                "Missing skills: "
+                + ", ".join(sorted(missing_skills))
                 + ". Import these skills before importing the team"
             )
         if missing_uploads:
             problems.append(
-                "Missing uploads: " + ", ".join(sorted(missing_uploads))
+                "Missing uploads: "
+                + ", ".join(sorted(missing_uploads))
                 + ". Upload these documents before importing the team"
             )
         if unready_uploads:
             problems.append(
-                "Uploads not ready: " + ", ".join(sorted(unready_uploads))
+                "Uploads not ready: "
+                + ", ".join(sorted(unready_uploads))
                 + ". Wait until the upload status is Completed"
             )
         raise HTTPException(status_code=422, detail="; ".join(problems))

@@ -174,7 +174,6 @@ def merge_provider_file_ids(
     return merged
 
 
-
 def _history_attachment_references(
     items: Iterable[ProviderAttachment], current_file_ids: ProviderFileIds
 ) -> dict[str, list[dict[str, str]]]:
