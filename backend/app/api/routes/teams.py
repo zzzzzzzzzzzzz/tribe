@@ -335,13 +335,9 @@ def import_team(
             base_url=member_export.base_url,
             belongs_to=team.id,
         )
-        member.skills = [
-            skills_by_name[skill.name]
-            for skill in member_export.skills
-        ]
+        member.skills = [skills_by_name[skill.name] for skill in member_export.skills]
         member.uploads = [
-            uploads_by_name[upload.name]
-            for upload in member_export.uploads
+            uploads_by_name[upload.name] for upload in member_export.uploads
         ]
         session.add(member)
         session.commit()

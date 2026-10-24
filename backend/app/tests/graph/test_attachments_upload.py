@@ -1,4 +1,7 @@
+from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from pytest import MonkeyPatch
 
@@ -13,6 +16,7 @@ from app.models import (
     ChatMessage,
     ChatMessageType,
     Member,
+    ProviderAttachment,
 )
 
 
@@ -528,3 +532,54 @@ def test_delete_gigachat_file_uses_b2b_scope(monkeypatch: MonkeyPatch) -> None:
     assert calls["scope"] == "GIGACHAT_API_B2B"
     assert calls["timeout"] == 120
     assert calls["deleted"] == "test-id"
+
+
+def test_previous_thread_attachments_reuse_ids_not_payloads() -> None:
+    now = datetime.now(ZoneInfo("UTC"))
+    common = {
+        "thread_id": uuid4(),
+        "expires_at": now + timedelta(days=1),
+    }
+    image = ProviderAttachment(
+        **common,
+        id=1,
+        provider="gigachat",
+        file_id="gigachat-image-1",
+        content_type="image/png",
+        filename="image.png",
+    )
+    document = ProviderAttachment(
+        **common,
+        id=2,
+        provider="openai",
+        file_id="openai-document-1",
+        content_type="application/pdf",
+        filename="report.pdf",
+    )
+    current = ProviderAttachment(
+        **common,
+        id=3,
+        provider="gigachat",
+        file_id="gigachat-image-current",
+        content_type="image/jpeg",
+    )
+    result = attachments._history_attachment_references(
+        [current, document, image],
+        {"openai": [], "gigachat": ["gigachat-image-current"]},
+    )
+    assert result == {
+        "openai": [
+            {
+                "file_id": "openai-document-1",
+                "kind": "file",
+                "filename": "report.pdf",
+            }
+        ],
+        "gigachat": [
+            {
+                "file_id": "gigachat-image-1",
+                "kind": "image",
+                "filename": "image.png",
+            }
+        ],
+    }

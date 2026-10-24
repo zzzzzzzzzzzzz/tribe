@@ -29,6 +29,7 @@ from app.core.config import settings
 from app.core.graph.attachments import (
     ProviderFileIds,
     collect_provider_file_ids,
+    load_previous_thread_attachments,
     merge_provider_file_ids,
     persist_provider_attachments,
     upload_attachments_for_thread,
@@ -790,6 +791,12 @@ async def generator(
             members=members,
         )
 
+    # Reference uploads from earlier turns by their provider file IDs.
+    historical_provider_attachments = load_previous_thread_attachments(
+        thread_id=thread_id,
+        current_file_ids=uploaded_provider_file_ids,
+    )
+
     attachment_provider: str | None = None
     if members and all(member.provider == "gigachat" for member in members):
         attachment_provider = "gigachat"
@@ -827,6 +834,7 @@ async def generator(
                     "main_task": formatted_messages,
                     "all_messages": formatted_messages,
                     "uploaded_provider_file_ids": uploaded_provider_file_ids,
+                    "historical_provider_attachments": historical_provider_attachments,
                 }
             else:
                 member_dict = convert_sequential_team_to_dict(members)
@@ -849,6 +857,7 @@ async def generator(
                     "main_task": formatted_messages,
                     "all_messages": formatted_messages,
                     "uploaded_provider_file_ids": uploaded_provider_file_ids,
+                    "historical_provider_attachments": historical_provider_attachments,
                 }
 
             config: RunnableConfig = {

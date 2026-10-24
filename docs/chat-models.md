@@ -47,3 +47,18 @@ model before any database writes. A missing resource returns HTTP 422 with
 its exact name and a hint to import the skill or upload the document first.
 The UI shows the server's error detail instead of hiding the underlying reason.
 No resources are created automatically and no existing skill is modified.
+
+### Reusing earlier chat attachments
+
+Tribe stores per-provider file IDs with the chat thread. On subsequent
+messages, the graph includes a short reference to earlier images and documents
+in the model input, without uploading the file again.
+
+- OpenAI Responses API: `input_image` / `input_file` with `file_id`.
+- GigaChat: an `attachments` array on a user message.
+- Images: up to 10 recent images per request, including new ones (GigaChat API
+  limit); at most 5 earlier documents are included.
+- Provider files are stored for up to 30 days. Expired or deleted provider
+  uploads cannot be referenced later; upload again if the API rejects an old ID.
+- The app still passes normal text conversation history through its existing
+  checkpointed LangGraph state.

@@ -3,7 +3,7 @@ from typing import Annotated, Any
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, AnyMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langchain_core.output_parsers.openai_tools import JsonOutputKeyToolsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import (
@@ -177,6 +177,7 @@ class TeamState(TypedDict):
     next: str
     main_task: list[AnyMessage]
     uploaded_provider_file_ids: dict[str, list[str]]
+    historical_provider_attachments: dict[str, list[dict[str, str]]]
     task: list[
         AnyMessage
     ]  # This is the current task to be perform by a team member. Its a list because Worker's MessagesPlaceholder only accepts list of messages.
@@ -193,11 +194,60 @@ class ReturnTeamState(TypedDict):
     task: NotRequired[list[AnyMessage]]
 
 
+
+def previous_attachment_messages(state: TeamState, provider: str) -> list[HumanMessage]:
+    """Use old attachment file IDs without transmitting their original bytes."""
+    references = state.get("historical_provider_attachments", {}).get(provider, [])
+    current_image_count = sum(
+        1
+        for msg in state.get("main_task", [])
+        if isinstance(msg, HumanMessage) and isinstance(msg.content, list)
+        for part in msg.content
+        if isinstance(part, Mapping)
+        and part.get("type") in {"input_image", "image_url"}
+    )
+    image_limit = max(0, 10 - current_image_count) if provider == "gigachat" else 10
+    images = [ref for ref in references if ref.get("kind") == "image"]
+    files = [ref for ref in references if ref.get("kind") == "file"]
+    selected = (images[-image_limit:] if image_limit else []) + files[-5:]
+    result: list[HumanMessage] = []
+    for ref in selected:
+        file_id = ref.get("file_id")
+        if not file_id:
+            continue
+        label = (
+            "Ранее прикреплённое изображение пользователя"
+            if ref.get("kind") == "image"
+            else "Ранее прикреплённый документ: " + ref.get("filename", "файл")
+        )
+        if provider == "openai":
+            part_type = "input_image" if ref.get("kind") == "image" else "input_file"
+            result.append(
+                HumanMessage(
+                    name="user",
+                    content=[
+                        {"type": "input_text", "text": label},
+                        {"type": part_type, "file_id": file_id},
+                    ],
+                )
+            )
+        elif provider == "gigachat":
+            result.append(
+                HumanMessage(
+                    name="user",
+                    content=label,
+                    additional_kwargs={"attachments": [file_id]},
+                )
+            )
+    return result
+
+
 class BaseNode:
     def __init__(
         self, provider: str, model: str, base_url: str | None, temperature: float
     ):
         self.model: BaseChatModel
+        self.provider = provider
         validate_model_selection(provider, model)
         if provider == "openai":
             self.model = ChatOpenAI(
@@ -264,6 +314,7 @@ class WorkerNode(BaseNode):
                 "Задача: \n\n {task_string} \n\n История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
             ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="previous_attachments", optional=True),
             MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
@@ -285,6 +336,7 @@ class WorkerNode(BaseNode):
             persona=member.persona,
             history_string=format_messages(state["history"]),
             task_string=format_messages(state["task"]),
+            previous_attachments=previous_attachment_messages(state, self.provider),
         )
         # If member has no tools, then use a regular model instead of an agent
         if len(member.tools) >= 1:
@@ -328,6 +380,7 @@ class SequentialWorkerNode(WorkerNode):
                 "История обсуждения: \n\n {history_string} \n\n Укажи свой ответ.",
             ),
             ("human", WorkerNode.attachment_context_note),
+            MessagesPlaceholder(variable_name="previous_attachments", optional=True),
             MessagesPlaceholder(variable_name="main_task"),
             MessagesPlaceholder(variable_name="messages"),
         ]
@@ -349,7 +402,9 @@ class SequentialWorkerNode(WorkerNode):
         member = team.members[name]
         assert isinstance(member, GraphMember), "member is unexpectedly not a Member"
         prompt = self.worker_prompt.partial(
-            persona=member.persona, history_string=format_messages(state["history"])
+            persona=member.persona,
+            history_string=format_messages(state["history"]),
+            previous_attachments=previous_attachment_messages(state, self.provider),
         )
         # If member has no tools, then use a regular model instead of an agent
         if len(member.tools) >= 1:
@@ -407,6 +462,7 @@ class LeaderNode(BaseNode):
                 ),
             ),
             ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="previous_attachments", optional=True),
             MessagesPlaceholder(variable_name="main_task"),
         ]
     )
@@ -483,6 +539,9 @@ class LeaderNode(BaseNode):
                 team_task=format_messages(state["main_task"]),
                 history_string=format_messages(state["history"]),
                 options=str(options),
+                previous_attachments=previous_attachment_messages(
+                    state, self.provider
+                ),
             )
             | bind_tool
             | JsonOutputKeyToolsParser(key_name="route", first_tool_only=True)
@@ -524,6 +583,7 @@ class SummariserNode(BaseNode):
                 "Вот задача для команды: \n\n {team_task} \n\n Вот диалог команды: \n\n {history_string} \n\n Предоставьте ваш ответ.",
             ),
             ("human", attachment_context_note),
+            MessagesPlaceholder(variable_name="previous_attachments", optional=True),
             MessagesPlaceholder(variable_name="main_task"),
         ]
     )
@@ -542,6 +602,9 @@ class SummariserNode(BaseNode):
                 team_members_name=team_members_name,
                 team_task=team_task,
                 history_string=format_messages(state["history"]),
+                previous_attachments=previous_attachment_messages(
+                    state, self.provider
+                ),
             )
             | self.final_answer_model
             | RunnableLambda(self.tag_with_name).bind(name=f"{team.name}_answer")  # type: ignore[arg-type]

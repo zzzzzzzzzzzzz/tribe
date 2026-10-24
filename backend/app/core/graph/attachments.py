@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 from gigachat import GigaChat
 from openai import OpenAI
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.core.db import engine
 from app.core.graph.gigachat_config import GIGACHAT_SCOPE, GIGACHAT_TIMEOUT
@@ -172,6 +172,47 @@ def merge_provider_file_ids(
                 if file_id not in merged[provider_name]:
                     merged[provider_name].append(file_id)
     return merged
+
+
+
+def _history_attachment_references(
+    items: Iterable[ProviderAttachment], current_file_ids: ProviderFileIds
+) -> dict[str, list[dict[str, str]]]:
+    """Select saved provider file IDs without resending or copying the payload."""
+    result: dict[str, list[dict[str, str]]] = {"openai": [], "gigachat": []}
+    for attachment in sorted(items, key=lambda item: item.id or 0):
+        provider = attachment.provider
+        if provider not in result:
+            continue
+        if attachment.file_id in current_file_ids.get(provider, []):
+            continue
+        content_type = attachment.content_type or (
+            mimetypes.guess_type(attachment.filename or "")[0] or ""
+        )
+        result[provider].append(
+            {
+                "file_id": attachment.file_id,
+                "kind": "image" if content_type.startswith("image/") else "file",
+                "filename": attachment.filename or "attachment",
+            }
+        )
+    return result
+
+
+def load_previous_thread_attachments(
+    *, thread_id: str, current_file_ids: ProviderFileIds
+) -> dict[str, list[dict[str, str]]]:
+    """Read non-expired uploads belonging to this conversation."""
+    now = datetime.now(ZoneInfo("UTC"))
+    with Session(engine) as session:
+        found = session.exec(
+            select(ProviderAttachment).where(
+                ProviderAttachment.thread_id == UUID(thread_id),
+                col(ProviderAttachment.deleted_at).is_(None),
+                col(ProviderAttachment.expires_at) > now,
+            )
+        ).all()
+    return _history_attachment_references(found, current_file_ids)
 
 
 def persist_provider_attachments(
